@@ -1,0 +1,43 @@
+{
+  "version": "4",
+  "specifiers": {
+    "jsr:@std/path@^1.0.8": "1.0.8",
+    "npm:@trpc/client@^11.0.0-rc.840": "11.0.0-rc.840_@trpc+server@11.0.0-rc.840__typescript@5.8.2_typescript@5.8.2",
+    "npm:@trpc/server@^11.0.0-rc.840": "11.0.0-rc.840_typescript@5.8.2",
+    "npm:zod@^3.24.2": "3.24.2"
+  },
+  "jsr": {
+    "@std/path@1.0.8": {
+      "integrity": "548fa456bb6a04d3c1a1e7477986b6cffbce95102d0bb447c67c4ee70e0364be"
+    }
+  },
+  "npm": {
+    "@trpc/client@11.0.0-rc.840_@trpc+server@11.0.0-rc.840__typescript@5.8.2_typescript@5.8.2": {
+      "integrity": "sha512-7i+1ZuwXrfjxrR02uJn01BtWx0k9lAXc7qqrYxI8EHzMvQF+Et7EzlYaqh2logKtclb7BpBYNOJqOEv+Nevz4A==",
+      "dependencies": [
+        "@trpc/server",
+        "typescript"
+      ]
+    },
+    "@trpc/server@11.0.0-rc.840_typescript@5.8.2": {
+      "integrity": "sha512-bk079wyaGk76w8bpAoiFrcNNEBbV5U0zoq7v4EIsslhB7EIJwd4Vyn52GtdZEpJOFuCCORxgGZxmn8slIo9tvg==",
+      "dependencies": [
+        "typescript"
+      ]
+    },
+    "typescript@5.8.2": {
+      "integrity": "sha512-aJn6wq13/afZp/jT9QZmwEjDqqvSGp1VT5GVg+f/t6/oVyrgXM6BY1h9BRh/O5p3PlUPAe+WuiEZOmb/49RqoQ=="
+    },
+    "zod@3.24.2": {
+      "integrity": "sha512-lY7CDW43ECgW9u1TcT3IoXHflywfVqDYze4waEz812jR/bZ8FHDsl7pFQoSZTz5N+2NqRXs8GBwnAwo3ZNxqhQ=="
+    }
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@std/path@^1.0.8",
+      "npm:@trpc/client@^11.0.0-rc.840",
+      "npm:@trpc/server@^11.0.0-rc.840",
+      "npm:zod@^3.24.2"
+    ]
+  }
+}
