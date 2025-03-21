@@ -1,5 +1,5 @@
-import { walk } from "https://deno.land/std/fs/mod.ts";
-import { basename, join } from "https://deno.land/std/path/mod.ts";
+import { walk } from "https://deno.land/std@0.224.0/fs/mod.ts";
+import { basename, join } from "https://deno.land/std@0.224.0/path/mod.ts";
 import { bundle } from "jsr:@deno/emit";
 
 export async function transformTS() {
