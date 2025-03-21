@@ -7,10 +7,12 @@
   "dev": "deno run --allow-read --allow-write --allow-net --allow-run --allow-env --watch dev.ts",
   "prod": "deno run --watch prod.ts "
 },
+"nodeModulesDir": "auto",
 "scripts": {
   "clean": "npm run clear-dist && npm run clear-prod"
 },
   "imports": {
+    "@oak/oak": "jsr:@oak/oak@^17.1.4",
     "@std/fmt": "jsr:@std/fmt@1",
     "@std/fs": "jsr:@std/fs@1",
     "@std/dotenv": "jsr:@std/dotenv@0",
@@ -23,7 +25,12 @@
     "@std/testing": "jsr:@std/testing@1",
     "@trpc/client": "npm:@trpc/client@^11.0.0-rc.840",
     "@trpc/server": "npm:@trpc/server@^11.0.0-rc.840",
+    "posthtml": "npm:posthtml@^0.16.6",
+    "posthtml-include": "npm:posthtml-include@^2.0.1",
     "zod": "npm:zod@^3.24.2"
+  },
+  "lint": {
+    "enable": false
   },
   "unstable": [
     "kv",
@@ -56,6 +63,7 @@
     "compilerOptions": {
       "strict": true,
       "exactOptionalPropertyTypes": true,
+      
       "lib": [
         "esnext",
         "deno.window",

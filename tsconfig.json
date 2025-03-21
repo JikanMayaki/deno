@@ -1,13 +1,15 @@
 {
     "compilerOptions": {
-      "target": "ES6",
+      "target": "ESNext",
       "lib": ["dom", "dom.iterable","dom.asynciterable", "esnext", "ES2016", "ES2017","ES2020", "ES5", "ES6" ],
       "allowJs": true,
       "allowImportingTsExtensions":true,
       "checkJs": true,
       "skipLibCheck": true,
       "strict": true,
+      "strictNullChecks": false,
       "forceConsistentCasingInFileNames": false,
+      "noFallthroughCasesInSwitch": true,
       "noEmit": true,
       "module": "esnext",
       "esModuleInterop": true,

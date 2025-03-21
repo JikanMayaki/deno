@@ -1,17 +1,16 @@
 
-import { walkSync } from "https://deno.land/std/fs/mod.ts";
-import { join, relative, extname, dirname } from "https://deno.land/std/path/mod.ts";
+import { walkSync } from "https://deno.land/std@0.224.0/fs/mod.ts";
+import { join, relative, extname, dirname } from "https://deno.land/std@0.224.0/path/mod.ts";
 import {
   ImageMagick,
   initializeImageMagick,
-  MagickGeometry,
 } from "https://deno.land/x/imagemagick_deno@0.0.14/mod.ts";
 
 function isImage(path: string): boolean {
   const ext = extname(path).toLowerCase();
   return [".jpg", ".jpeg", ".png", ".gif", ".webp"].includes(ext);
 }
-
+//this may needfix
 async function optimizeImage(inputPath: string, outputPath: string) {
   await initializeImageMagick();
   const ext = extname(inputPath).toLowerCase();

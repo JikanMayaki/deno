@@ -1,5 +1,5 @@
-import { walk } from "https://deno.land/std/fs/mod.ts";
-import { relative, join, basename } from "https://deno.land/std/path/mod.ts";
+import { walk } from "https://deno.land/std@0.224.0/fs/mod.ts";
+import { join, basename } from "https://deno.land/std@0.224.0/path/mod.ts";
 import * as sass from 'npm:sass';
 import * as path from 'npm:path';
 
