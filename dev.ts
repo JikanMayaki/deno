@@ -65,6 +65,9 @@ async function copyStaticFiles(sourcePath: string, targetPath: string) {
 async function build() {
   await Deno.mkdir(distPath, { recursive: true });
   await transformHTML();
+  await transformAssets();
+  await transformTS();
+  await transformSCSS();
   await copyStaticFiles(srcPath, distPath);
   console.log("Build successful. dinos have landed.");
 }
@@ -146,7 +149,7 @@ async function transformHTML() {
         // partial handling
         const result = await posthtml([
           include({
-            root: join(srcPath, './partials'), // Where partials are stored
+            root: './partials', // Where partials are stored
             onError: (error: Error) => {
               console.error(`Error including partial: ${error.message}`);
             }

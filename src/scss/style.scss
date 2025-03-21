@@ -37,10 +37,10 @@ main {
   margin: 30px auto;
   padding: 20px;
   border: 3px solid $primary-blue;
-  background-color: lighten-color($secondary-green, 70%);
+  // background-color: lighten-color($secondary-green, 70%);
 
   h2 {
-    @include apply-color(color, $primary-blue);
+    // @include apply-color(color, $primary-blue);
     margin-bottom: 15px;
   }
 
@@ -50,7 +50,7 @@ main {
   }
 
   .warning {
-    @include apply-color(color, $warning-red);
+    // @include apply-color(color, $warning-red);
     font-weight: bold;
   }
 
