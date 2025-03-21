@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>POOP</title>
+    </head>
+    <body>
+        HELLOWORLD (DINO'S VERSION)
+    </body>
+
+<script>
+    const ws = new WebSocket(`ws://localhost:${location.port}/`);
+    ws.onmessage = () => location.reload();
+    </script>
+</html>

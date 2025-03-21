@@ -1,0 +1,15 @@
+{
+    "files": {
+      "include": ["src/**/*.{js,ts,jsx,tsx}"],
+      "ignore": ["dist/**/*"]
+    },
+    "formatter": {
+      "indentStyle": "space",
+      "indentSize": 2
+    },
+    "linter": {
+      "rules": {
+        "recommended": true
+      }
+    }
+  }
