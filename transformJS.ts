@@ -2,7 +2,7 @@ import { walk } from "https://deno.land/std@0.224.0/fs/mod.ts";
 import { basename, join } from "https://deno.land/std@0.224.0/path/mod.ts";
 import { bundle } from "jsr:@deno/emit";
 
-export async function transformTS() {
+export async function transformTS(changedFiles: Set<string> | null = null) {
   console.log("Starting TS bundling...");
   const srcPath = "./src/ts";
   const distPath = "./dist/js";
@@ -21,7 +21,7 @@ export async function transformTS() {
       const result = await bundle(srcFile);
       await Deno.writeTextFile(distFile, result.code);
       
-      console.log(`Successfully bundled ${srcFile} into ${distFile}`);
+      // console.log(`Successfully bundled ${srcFile} into ${distFile}`);
     } catch (err) {
       console.error(`Error processing ${srcFile}:`, err);
     }

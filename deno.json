@@ -4,7 +4,7 @@
   "author": "Color in Code <(colorincodeme@gmail.com)>",
   "homepage": "https://github.com/colorincode/deno",
   "tasks": {
-  "dev": "deno run --allow-read --allow-write --allow-net --allow-run --allow-env --watch dev.ts",
+  "dev": "deno run --allow-read --allow-write --allow-net --allow-run --allow-env --allow-sys --allow-ffi --watch dev.ts",
   "prod": "deno run --watch prod.ts "
 },
 "nodeModulesDir": "auto",
@@ -12,6 +12,7 @@
   "clean": "npm run clear-dist && npm run clear-prod"
 },
   "imports": {
+    "browserslist": "npm:browserslist",
     "@oak/oak": "jsr:@oak/oak@^17.1.4",
     "@std/fmt": "jsr:@std/fmt@1",
     "@std/fs": "jsr:@std/fs@1",
@@ -25,8 +26,12 @@
     "@std/testing": "jsr:@std/testing@1",
     "@trpc/client": "npm:@trpc/client@^11.0.0-rc.840",
     "@trpc/server": "npm:@trpc/server@^11.0.0-rc.840",
+    "lightningcss": "npm:lightningcss@^1.29.3",
+    "postcss": "npm:postcss@^8.5.3",
+    "postcss-import": "npm:postcss-import@^16.1.0",
     "posthtml": "npm:posthtml@^0.16.6",
     "posthtml-include": "npm:posthtml-include@^2.0.1",
+    "sass": "npm:sass@^1.86.0",
     "sharp": "npm:sharp@^0.33.5",
     "zod": "npm:zod@^3.24.2"
   },

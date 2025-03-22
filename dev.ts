@@ -1,7 +1,7 @@
 // deno-lint-ignore-file no-unused-vars
-import { walk } from "https://deno.land/std@0.224.0/fs/mod.ts";
-import { join, relative } from "https://deno.land/std@0.224.0/path/mod.ts";
-import { Application, send } from "https://deno.land/x/oak/mod.ts";
+import { ensureDir, walk } from "https://deno.land/std@0.224.0/fs/mod.ts";
+import { dirname, join, relative } from "https://deno.land/std@0.224.0/path/mod.ts";
+import { Application, send } from "https://deno.land/x/oak@v17.1.4/mod.ts";
 import { transformAssets } from "./transformAssets.ts";
 import { transformTS } from "./transformJS.ts";
 import { transformSCSS } from "./transformSCSS.ts";
@@ -10,9 +10,9 @@ import { open } from "https://deno.land/x/open@v1.0.0/index.ts";
 import * as path from 'npm:path';
 import posthtml from "npm:posthtml";
 import include from "npm:posthtml-include";
-
+import { serveDir } from "https://deno.land/std@0.224.0/http/file_server.ts";
 import { acceptWebSocket, isWebSocketCloseEvent } from "https://deno.land/std@0.65.0/ws/mod.ts?s=WebSocketEvent";
-
+import { debounce } from "https://deno.land/std@0.224.0/async/debounce.ts";
 import { encoder } from 'https://deno.land/std@0.65.0/encoding/utf8.ts'
 
 const port = 1234;
@@ -37,97 +37,104 @@ async function findAvailablePort(startPort: number): Promise<number> {
   }
 }
 
-async function copyStaticFiles(sourcePath: string, targetPath: string) {
-  await Deno.mkdir(targetPath, { recursive: true });
+async function mirrorDirectoryStructure(sourcePath: string, targetPath: string) {
   try {
-  for await (const entry of Deno.readDir(sourcePath)) {
-    const srcPath = `${sourcePath}/${entry.name}`;
-    let newDirName = entry.name;
-    
-    if (targetPath.startsWith("./dist")) {
-      if (newDirName === "scss") newDirName = "css";
-      if (newDirName === "ts") newDirName = "js";
+    // Ensure the target directory exists
+    await Deno.mkdir(targetPath, { recursive: true });
+
+    for await (const entry of Deno.readDir(sourcePath)) {
+      if (entry.isDirectory) {
+        let newDirName = entry.name;
+        
+        // Change directory names for dist
+        if (targetPath.startsWith("./dist")) {
+          if (newDirName === "scss") newDirName = "css";
+          if (newDirName === "ts") newDirName = "js";
+        }
+
+        const newSourcePath = `${sourcePath}/${entry.name}`;
+        const newTargetPath = `${targetPath}/${newDirName}`;
+        await mirrorDirectoryStructure(newSourcePath, newTargetPath);
+      }
     }
-    
-    const newTargetPath = `${targetPath}/${newDirName}`;
-    
-    if (entry.isDirectory) {
-      await copyStaticFiles(srcPath, newTargetPath);
-    } else if (entry.name === "index.html") {
-      await Deno.copyFile(srcPath, newTargetPath);
-    }
-  }
-    } catch (error) {
+  } catch (error) {
     console.error(`Error processing ${sourcePath}:`, error);
   }
 }
 
-async function build() {
-  await Deno.mkdir(distPath, { recursive: true });
-  await transformHTML();
-  await transformAssets();
-  await transformTS();
-  await transformSCSS();
-  await copyStaticFiles(srcPath, distPath);
-  console.log("Build successful. dinos have landed.");
+async function build(changedFiles: Set<string> | null = null) {
+  await mirrorDirectoryStructure(srcPath, distPath);
+
+  try {
+    await transformHTML(changedFiles);
+    await transformAssets(changedFiles);
+    await transformTS(changedFiles);
+    await transformSCSS(changedFiles);
+    console.log("_______________________________  build complete");
+  } catch (error) {
+    console.error("Error during build process:", error);
+  }
 }
+
+const debouncedBuild = debounce(async (changedFiles: Set<string>) => {
+  console.log("Debounced build triggered with changes:", Array.from(changedFiles));
+  await build(changedFiles);
+}, 300);
 
 async function createServer() {
   const availablePort = await findAvailablePort(port);
-  const app = new Application();
-  app.use(async (ctx: { request: { url: { pathname: string } }; isUpgradable: any; upgrade: () => any }, next: () => any) => {
-    if (ctx.request.url.pathname === "/ws") {
-      if (ctx.isUpgradable) {
-        const socket = await ctx.upgrade();
-        socket.onopen = () => {
-          wss.add(socket);
-          console.log("WebSocket connected");
-        };
-        socket.onclose = () => wss.delete(socket);
-        socket.onerror = () => wss.delete(socket);
-        return; 
-      }
+
+  const wss = new Set<WebSocket>(); // Assuming this is defined globally in your script
+
+  const handler = async (req: Request): Promise<Response> => {
+    const url = new URL(req.url);
+    const pathname = url.pathname;
+
+    // Handle WebSocket upgrade
+    if (pathname === "/ws") {
+      const { socket, response } = Deno.upgradeWebSocket(req);
+      socket.onopen = () => {
+        wss.add(socket);
+        console.log("WebSocket connected");
+      };
+      socket.onclose = () => {
+        wss.delete(socket);
+        console.log("WebSocket disconnected");
+      };
+      socket.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        wss.delete(socket);
+      };
+      return response;
     }
-    await next();
-  });
-  app.use(async (ctx: { request: { url: { pathname: any } } }) => {
-    await send(ctx, ctx.request.url.pathname, {
-      root: distPath,
-      index: "index.html", // Serve index.html by default
-    });
-  });
-  app.addEventListener("listen", ({ hostname, port }) => {
-    console.log(`Dinos have landed. http://${hostname}:${port}`);
+
+    // Serve static files from distPath
+    try {
+      return await serveDir(req, {
+        fsRoot: distPath,
+        showDirListing: false,
+        quiet: true, // Suppresses default logging; remove if you want file serving logs
+      });
+    } catch (error) {
+      console.error(`Error serving ${pathname}:`, error);
+      return new Response("Not Found", { status: 404 });
+    }
+  };
+
+  // Start the server
+  Deno.serve({ port: availablePort, handler }, (info) => {
+    console.log(`Dinos have landed. http://${info.hostname}:${info.port}`);
   });
 
-  await app.listen({ port: availablePort });
-//   Deno.serve({
-//     port: availablePort,
-//     onListen({ hostname, port }) {
-//       console.log(`Dinos have landed. http://${hostname}:${port}`);
-//     }
-//   }, async (req) => {
-//     const url = new URL(req.url);
-    
-//     if (url.pathname === "/ws") {
-//       const { socket, response } = Deno.upgradeWebSocket(req);
-//       socket.onopen = () => {
-//         wss.add(socket);
-//         console.log("WebSocket connected");
-//       };
-//       socket.onclose = () => wss.delete(socket);
-//       socket.onerror = () => wss.delete(socket);
-//       return response;
-//     }
-    
-//     return await serveDir(req, { fsRoot: distPath });
-//   });
+  return wss; // Return wss so it can be used elsewhere (optional)
 }
 
-async function transformHTML() {
+
+async function transformHTML(changedFiles: Set<string> | null = null) {
   console.log("Starting HTML file copying...");
   for await (const entry of walk(srcPath, { exts: [".html"] })) {
     const srcFile = entry.path;
+    if (changedFiles && !changedFiles.has(srcFile)) continue;
     const relativePath = relative(srcPath, srcFile);
     const distFile = join(distPath, relativePath);
     
@@ -145,27 +152,27 @@ async function transformHTML() {
       if (shouldCopy) {
         await Deno.mkdir(join(distPath, relativePath, ".."), { recursive: true });
         // read dir
-        let htmlContent = await Deno.readTextFile(srcFile);
+       let content = await Deno.readTextFile(srcFile);
         // partial handling
         const result = await posthtml([
           include({
-            root: './partials', // Where partials are stored
+            root: './src', // Where partials are stored
             onError: (error: Error) => {
               console.error(`Error including partial: ${error.message}`);
             }
           })
-        ]).process(htmlContent);
-        
-        htmlContent = result.html;
-        // Replace file extensions and paths
-        htmlContent = htmlContent
-          .replace(/\.scss/g, ".css")
-          .replace(/\.\/scss\//g, "./css/")
-          .replace(/\.ts/g, ".js")
-          .replace(/\.\/ts\//g, "./js/");
-        
+        ]).process(content);
+        content = result.html;
+        // replace paths
+        const transformedContent = content
+        .replace(/(?<=href="|src=")\.?\/(scss|ts)\//g, "./$1/")
+        .replace(/(?<=href="|src=")\.\/(scss)\//g, "./css/")
+        .replace(/(?<=href="|src=")\.\/(ts)\//g, "./js/")
+        .replace(/(?<=href="|src=")(.+)\.scss/g, "$1.css")
+        .replace(/(?<=href="|src=")(.+)\.ts/g, "$1.js")
+        .replace(/(?<=href="|src=")\.\.\/assets\//g, "./assets/");
         // Write the transformed content
-        await Deno.writeTextFile(distFile, htmlContent);
+        await Deno.writeTextFile(distFile, transformedContent);
         console.log(`Processed and copied ${srcFile} to ${distFile}`);
       }
     } catch (err) {
@@ -175,14 +182,17 @@ async function transformHTML() {
   console.log("HTML file copying complete.");
 }
 
+
 async function main() {
   await build();
   await createServer();
   
   const watcher = Deno.watchFs(["src"], { recursive: true });
-  for await (const _event of watcher) {
-    console.log("Change detected, rebuilding...");
-    await build();
+  console.log("Watching for changes in src directory...");
+  for await (const event of watcher) {
+    console.log(`Change detected: ${event.kind}`, event.paths);
+    const changedFiles = new Set<string>(event.paths);
+    await debouncedBuild(changedFiles);
     wss.forEach(ws => {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send("reload");

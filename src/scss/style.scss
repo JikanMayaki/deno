@@ -21,9 +21,11 @@ body {
 body,html {
     margin:0;
     padding:0;
+    width: 100vw;
 }
 h1,h2,h3,h4,h5,h6 {
     font-family: "Rift", sans-serif;
+    color: var(--wisteria);
 }
 p, input, textarea, blockquote {
   font-family: "Rift", sans-serif;
@@ -58,6 +60,7 @@ main {
   .unused-style {
     background-color: purple;
     font-size: 72px;
-    text-transform: uppercase;
+    // text-transform: uppercase;
+    text-transform: capitalize;
   }
 }
