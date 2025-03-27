@@ -68,9 +68,11 @@ async function build(changedFiles: Set<string> | null = null) {
 
   try {
     await transformHTML(changedFiles);
-    await transformAssets(changedFiles);
+
     await transformTS(changedFiles);
     await transformSCSS(changedFiles);
+    await createServer();
+    await transformAssets(changedFiles);
     console.log("_______________________________  build complete");
   } catch (error) {
     console.error("Error during build process:", error);
@@ -235,7 +237,7 @@ async function transformHTML(changedFiles: Set<string> | null = null) {
 
 async function main() {
   await build();
-  await createServer();
+  // await createServer();
   
   const watcher = Deno.watchFs(["src"], { recursive: true });
   console.log("Watching for changes in src directory...");

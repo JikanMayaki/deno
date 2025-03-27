@@ -1,30 +1,76 @@
 import { walk } from "https://deno.land/std@0.224.0/fs/mod.ts";
-import { basename, join } from "https://deno.land/std@0.224.0/path/mod.ts";
-import { bundle } from "jsr:@deno/emit";
+import { denoLoaderPlugin } from "https://deno.land/x/esbuild_deno_loader/mod.ts";
+import { basename, join,relative } from "https://deno.land/std@0.224.0/path/mod.ts";
+// import { bundle } from "jsr:@deno/emit";
+import * as esbuild from "https://deno.land/x/esbuild@v0.25.1/mod.js";
+import { isAbsolute, resolve } from "https://deno.land/std@0.224.0/path/mod.ts";
+
+
+async function checkNodeModules() {
+  const node_modules_path = join(Deno.cwd(), "node_modules");
+  try {
+    const stats = await Deno.stat(node_modules_path);
+    if (!stats.isDirectory()) {
+      console.error("node_modules is not a directory.");
+    }
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      console.error("node_modules directory not found. Please install dependencies.");
+    } else {
+      console.error("Error checking node_modules:", error);
+    }
+  }
+}
 
 export async function transformTS(changedFiles: Set<string> | null = null) {
+  if (import.meta.main) {
+  await checkNodeModules();
+  }
   console.log("Starting TS bundling...");
   const srcPath = "./src/ts";
   const distPath = "./dist/js";
 
   await Deno.mkdir(distPath, { recursive: true });
-
-  for await (const entry of walk(srcPath, { exts: [".ts"] })) {
-    const srcFile = entry.path;
-    const filename = basename(srcFile);
-    const filenameWithJsExt = filename.replace(".ts", ".js");
-    const distFile = join(distPath, filenameWithJsExt);
-
-    try {
-      console.log(`Bundling ${srcFile} into ${distFile}...`);
-      
-      const result = await bundle(srcFile);
-      await Deno.writeTextFile(distFile, result.code);
-      
-      // console.log(`Successfully bundled ${srcFile} into ${distFile}`);
-    } catch (err) {
-      console.error(`Error processing ${srcFile}:`, err);
-    }
+  const entryPoints = [];
+  for await (const entry of walk(srcPath, { exts: [".ts"], skip: [/\.d\.ts$/] })) {
+    const relativePath = relative(Deno.cwd(), entry.path);
+    entryPoints.push(relativePath);
   }
-  console.log("TS bundling complete.");
-}
+    try {
+      console.log(`Bundling ${entryPoints.length} TS files into ${distPath}...`);
+      //changed result to resolve with esbuild, better than deno's native bundling
+      const result = await esbuild.build({
+        entryPoints,           // not sure if i need to add glob here, hoping it traverses/walks dir
+        outdir: distPath,      // dist/js
+        bundle: true,          // bundling hopefully work better
+        format: "esm",       
+        splitting: true,       // optional, may or may not work shaky results
+        treeShaking: true,     // optional,remove unused code
+        // plugins: [denoLoaderPlugin({ 
+      
+        //   nodeModulesDir: true
+        //  })] // module resolution 4 deno
+      });
+      if (result.errors.length > 0) {
+        console.error("TS transform failed:", result.errors);
+        result.errors.forEach((error: { text: string }) => {
+          if (error.text.includes("Could not resolve")) {
+            const match = error.text.match(/Could not resolve "([^"]+)"/);
+            if (match) {
+              console.error(`Missing dependency: "${match[1]}". Run \`npm install ${match[1]}\`.`);
+            }
+          }
+        });
+      } else if (result.warnings.length > 0) {
+        console.warn("TS transform warnings:", result.warnings);
+      } else {
+        console.log("TS files transformed successfully.");
+      }
+    } catch (err) {
+      console.error("Error during TS bundling:", err);
+    } finally {
+      esbuild.stop(); // Clean up esbuild resources once
+    }
+  
+    console.log("TS bundling complete.");
+  }
