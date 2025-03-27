@@ -5,7 +5,9 @@ import { basename, join,relative } from "https://deno.land/std@0.224.0/path/mod.
 import * as esbuild from "https://deno.land/x/esbuild@v0.25.1/mod.js";
 import { isAbsolute, resolve } from "https://deno.land/std@0.224.0/path/mod.ts";
 
-
+//optional for utils
+import { shaderPlugin } from './utils/threeJS_utils.ts';
+// import { transformVariousFiles } from './utils/threeJS_utils.ts';
 async function checkNodeModules() {
   const node_modules_path = join(Deno.cwd(), "node_modules");
   try {
@@ -32,7 +34,12 @@ export async function transformTS(changedFiles: Set<string> | null = null) {
 
   await Deno.mkdir(distPath, { recursive: true });
   const entryPoints = [];
-  for await (const entry of walk(srcPath, { exts: [".ts"], skip: [/\.d\.ts$/] })) {
+  for await (const entry of walk(srcPath, { 
+    exts: [".ts", ".shader", ".vert", ".glsl", ".frag"], 
+    // exts: [".ts"], 
+    skip: [/\.d\.ts$/] 
+  })) 
+  {
     const relativePath = relative(Deno.cwd(), entry.path);
     entryPoints.push(relativePath);
   }
@@ -46,11 +53,9 @@ export async function transformTS(changedFiles: Set<string> | null = null) {
         format: "esm",       
         splitting: true,       // optional, may or may not work shaky results
         treeShaking: true,     // optional,remove unused code
-        // plugins: [denoLoaderPlugin({ 
-      
-        //   nodeModulesDir: true
-        //  })] // module resolution 4 deno
+        plugins: [  shaderPlugin,]
       });
+      // transformVariousFiles();
       if (result.errors.length > 0) {
         console.error("TS transform failed:", result.errors);
         result.errors.forEach((error: { text: string }) => {
