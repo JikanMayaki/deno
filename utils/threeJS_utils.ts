@@ -20,31 +20,29 @@ import { isAbsolute, resolve } from "https://deno.land/std@0.224.0/path/mod.ts";
 //   }
 // Custom esbuild plugin for shader files
 export const shaderPlugin = {
-  name: 'shader-loader',
-  setup(build) {
-    // Handle .shader, .vert, and .glsl files
-    build.onLoad({ filter: /\.(shader|vert|glsl)$/ }, async (args) => {
-      try {
-        // Read the shader file content
-        const source = await Deno.readTextFile(args.path);
-        
-        // Export the shader as a string
-        const contents = `export default ${JSON.stringify(source)};`;
-        
-        return {
-          contents,
-          loader: 'js' // Treat it as JavaScript module
-        };
-      } catch (error) {
-        return {
-          errors: [{
-            text: `Failed to load shader file: ${error.message}`
-          }]
-        };
-      }
-    });
-  }
-};
+    name: 'shader-loader',
+    setup(build) {
+      // Updated filter to include .frag files
+      build.onLoad({ filter: /\.(shader|vert|glsl|frag)$/ }, async (args) => {
+        try {
+          const source = await Deno.readTextFile(args.path);
+          const contents = `export default ${JSON.stringify(source)};`;
+          
+          return {
+            contents,
+            loader: 'js'
+          };
+        } catch (error) {
+          return {
+            errors: [{
+              text: `Failed to load shader file: ${error.message}`
+            }]
+          };
+        }
+      });
+    }
+  };
+  
 
 // export async function transformVariousFiles(changedFiles: Set<string> | null = null) {
 //     if (import.meta.main) {
