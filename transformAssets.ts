@@ -139,5 +139,5 @@ export async function transformAssets(changedFiles: Set<string> | null = null) {
 
 // Run the watcher
 if (import.meta.main) {
-  watchAssets().catch(console.error);
+  transformAssets().catch(console.error);
 }
