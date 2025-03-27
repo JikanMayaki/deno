@@ -34,6 +34,7 @@ async function findAvailablePort(startPort: number): Promise<number> {
         throw error;
       }
     }
+    return port;
   }
 }
 
@@ -82,16 +83,16 @@ const debouncedBuild = debounce(async (changedFiles: Set<string>) => {
 }, 300);
 
 async function createServer() {
-  const availablePort = await findAvailablePort(port);
-
-  const wss = new Set<WebSocket>(); // Assuming this is defined globally in your script
-
-  const handler = async (req: Request): Promise<Response> => {
+ const availablePort = await findAvailablePort(port);
+ await Deno.serve({ port: port }, async (req) => {
     const url = new URL(req.url);
     const pathname = url.pathname;
-
-    // Handle WebSocket upgrade
+  
     if (pathname === "/ws") {
+      if (req.headers.get("upgrade") !== "websocket") {
+        return new Response("Expected websocket", { status: 400 });
+      }
+      
       const { socket, response } = Deno.upgradeWebSocket(req);
       socket.onopen = () => {
         wss.add(socket);
@@ -107,27 +108,76 @@ async function createServer() {
       };
       return response;
     }
-
-    // Serve static files from distPath
+  
     try {
       return await serveDir(req, {
         fsRoot: distPath,
         showDirListing: false,
-        quiet: true, // Suppresses default logging; remove if you want file serving logs
+        quiet: true,
       });
     } catch (error) {
       console.error(`Error serving ${pathname}:`, error);
       return new Response("Not Found", { status: 404 });
     }
-  };
-
-  // Start the server
-  Deno.serve({ port: availablePort, handler }, (info) => {
-    console.log(`Dinos have landed. http://${info.hostname}:${info.port}`);
   });
-
-  return wss; // Return wss so it can be used elsewhere (optional)
+  
+  console.log(`Dinos have landed. http://localhost:${availablePort}`);
 }
+
+
+//   const wss = new Set<WebSocket>(); // Assuming this is defined globally in your script
+
+//   const handler = async (req: Request): Promise<Response> => {
+//     const url = new URL(req.url);
+//     const pathname = url.pathname;
+
+//     // Handle WebSocket upgrade
+//     if (pathname === "/ws") {
+//       const { socket, response } = Deno.upgradeWebSocket(req);
+//       socket.onopen = () => {
+//         wss.add(socket);
+//         console.log("WebSocket connected");
+//       };
+//       socket.onclose = () => {
+//         wss.delete(socket);
+//         console.log("WebSocket disconnected");
+//       };
+//     Deno.upgradeWebSocket(req);
+//     socket.onopen = () => {
+//       wss.add(socket);
+//       console.log("WebSocket connected");
+//     };
+//     socket.onclose = () => {
+//       wss.delete(socket);
+//       console.log("WebSocket disconnected");
+//     };
+//     socket.onerror = (error) => {
+//       console.error("WebSocket error:", error);
+//       wss.delete(socket);
+//     };
+//       return response;
+//     }
+
+//     // Serve static files from distPath
+//     try {
+//       return await serveDir(req, {
+//         fsRoot: distPath,
+//         showDirListing: false,
+//         quiet: true, // Suppresses default logging; remove if you want file serving logs
+//       });
+//     } catch (error) {
+//       console.error(`Error serving ${pathname}:`, error);
+//       return new Response("Not Found", { status: 404 });
+//     }
+//   };
+
+//   // Start the server
+//   Deno.serve({ port: availablePort, handler }, (info) => {
+//     console.log(`Dinos have landed. http://${info.hostname}:${info.port}`);
+//   });
+
+//   return wss; // Return wss so it can be used elsewhere (optional)
+// }
 
 
 async function transformHTML(changedFiles: Set<string> | null = null) {
