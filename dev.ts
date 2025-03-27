@@ -19,7 +19,7 @@ const port = 1234;
 const wss = new Set<WebSocket>();
 const srcPath = "./src";
 const distPath = "./dist";
-
+let server: typeof Deno.serve | null = null;
 async function findAvailablePort(startPort: number): Promise<number> {
   let port = startPort;
   while (true) {
@@ -85,8 +85,11 @@ const debouncedBuild = debounce(async (changedFiles: Set<string>) => {
 }, 300);
 
 async function createServer() {
+  if (server) {
+    await server.close(); // Close the existing server if it exists
+  }
  const availablePort = await findAvailablePort(port);
- await Deno.serve({ port: port }, async (req) => {
+ server = Deno.serve({ port: availablePort }, async (req) => {
     const url = new URL(req.url);
     const pathname = url.pathname;
   
@@ -237,7 +240,7 @@ async function transformHTML(changedFiles: Set<string> | null = null) {
 
 async function main() {
   await build();
-  // await createServer();
+  await createServer();
   
   const watcher = Deno.watchFs(["src"], { recursive: true });
   console.log("Watching for changes in src directory...");

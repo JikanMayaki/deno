@@ -27,29 +27,29 @@ let isLoadingAnimationEnd = false;
 const tl = gsap.timeline({
     defaults: {
       ease: "power4.inOut",
-      opacity:0,
+    //   opacity:0,
     }
   });
 const loadingAnimation = () => {
-    tl.from('.outer__wrapper', {
+    tl.to('.outer__wrapper', {
    
-  
-      autoAlpha: 0, //animate opacity from zero to one, and set visibility to inherit
-      ease: "power4.in",
-      // opacity: 1,
+      y: 50, 
+    //   autoAlpha: 0, //animate opacity from zero to one, and set visibility to inherit
+    //   ease: "power4.in",
+    //   opacity: 1,
       stagger: 0,
       duration: 1,
-      onInterrupt: () => {
-      //set an interrupt protocol, if this animation fails to fire then nothing will be visible, it should rarely if ever have to be accessed
-      tl.restart();
-      },
-      onComplete: () => { }
+    //   onInterrupt: () => {
+    //   //set an interrupt protocol, if this animation fails to fire then nothing will be visible, it should rarely if ever have to be accessed
+    //   tl.restart();
+    //   },
+    //   onComplete: () => { }
     })
-
-    window.onload = (event) => {
-        // console.log("page is fully loaded");
+}
+    // window.onload = (event) => {
+    //     // console.log("page is fully loaded");
 
         loadingAnimation();
         console.log("loading animation successful");
-      };
-}
+//       };
+// }

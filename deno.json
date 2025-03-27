@@ -70,7 +70,6 @@
     ]
   },
     "compilerOptions": {
-      "strict": true,
       "exactOptionalPropertyTypes": true,
       
       "lib": [
