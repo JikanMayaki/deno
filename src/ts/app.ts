@@ -9,6 +9,7 @@ import { Power4 } from 'gsap/gsap-core';
 import Observer from 'gsap/Observer';
 import Timeline from 'gsap/all';
 import  Tween  from 'gsap/src/all';
+import './module.ts';
 //gsap registration, global scope
 gsap.registerPlugin(EasePack);
 gsap.registerPlugin(Tween);
@@ -19,7 +20,7 @@ gsap.registerPlugin(Observer);
 
 // import styles from './style.scss'
 console.log("app ts loaded");
-
+var window: Window & typeof globalThis
 // console.log(styles);
 let isLoaded = false;
 let isLoadingAnimationEnd = false;

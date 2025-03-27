@@ -6,10 +6,13 @@
   "tasks": {
   "clean": "deno run --allow-read --allow-write clear.ts",
   "dev": "deno run --allow-read --allow-write --allow-net --allow-run --allow-env --allow-sys --allow-ffi --watch dev.ts",
+  "lint": "biome lint ./src",
+  "lint:fix": "biome check --apply ./src",
   "prod": "deno run --watch prod.ts "
 },
 "nodeModulesDir": "auto",
   "imports": {
+    "@biomejs/biome": "npm:@biomejs/biome@^1.9.4",
     "browserslist": "npm:browserslist",
     "@oak/oak": "jsr:@oak/oak@^17.1.4",
     "@std/fmt": "jsr:@std/fmt@1",

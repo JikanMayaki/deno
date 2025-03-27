@@ -72,5 +72,5 @@ export async function transformTS(changedFiles: Set<string> | null = null) {
       esbuild.stop(); // Clean up esbuild resources once
     }
   
-    console.log("TS bundling complete.");
+    console.log("TS bundling complete.🎉");
   }

@@ -11,7 +11,7 @@
       "forceConsistentCasingInFileNames": false,
       "noFallthroughCasesInSwitch": true,
       "noEmit": true,
-      "module": "esnext",
+      "module": "ESNext",
       "esModuleInterop": true,
       "moduleResolution": "node",
       "resolveJsonModule": true,
@@ -21,12 +21,13 @@
       "noUncheckedIndexedAccess": true,
       "baseUrl": "./",
       "paths": {
-        "~/*": ["./src/*" , "./src/ts/*"]
+        "~/*": ["./src/*" , "./src/ts/*",]
       }
     },
     "exclude": [
         "node_modules",
         "working-files",
+        "prod",
         "dist",
     ]
   }

@@ -47,7 +47,7 @@ async function processFile(file: string, srcPath: string, distPath: string): Pro
     await Deno.writeTextFile(distFile, new TextDecoder().decode(code));
     processedFiles.add(file);
     
-    console.log(`Processed: ${file} -> ${distFile}`);
+    // console.log(`Processed: ${file} -> ${distFile}`);
   } catch (error) {
     console.error(`Error processing ${file}:`, error);
   }
@@ -64,16 +64,16 @@ export async function transformSCSS(changedFiles: Set<string> | null = null): Pr
     console.log("Processing all files (initial run)...");
     const processPromises: Promise<void>[] = [];
     for await (const entry of walk(srcPath, { exts: [".scss", ".css"] })) {
-      console.log(`Found file to process: ${entry.path}`);
+      // console.log(`Found file to process: ${entry.path}`);
       processPromises.push(processFile(entry.path, srcPath, distPath));
     }
     await Promise.all(processPromises);
   } else {
-    console.log("Processing changed files:", Array.from(changedFiles));
+    // console.log("Processing changed files:", Array.from(changedFiles));
     const processPromises: Promise<void>[] = [];
     for (const file of changedFiles) {
       if (file.endsWith(".scss") || file.endsWith(".css")) {
-        console.log(`Queuing file to process: ${file}`);
+        // console.log(`Queuing file to process: ${file}`);
         processPromises.push(processFile(file, srcPath, distPath));
       } else {
         console.log(`Skipping non-SCSS/CSS file: ${file}`);
