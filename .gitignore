@@ -4,6 +4,7 @@ assets/
 working-files/
 dist/
 prod/
+node_modules/
 # Logs
 
 logs
