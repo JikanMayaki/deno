@@ -1,6 +1,6 @@
 import { walkSync } from "https://deno.land/std@0.224.0/fs/mod.ts";
 import { join, relative, extname, dirname } from "https://deno.land/std@0.224.0/path/mod.ts";
-
+import { transformVideos } from "./utils/processVideo_utils.ts";
 // Utility to check if a path is an image
 function isImage(path: string): boolean {
   const ext = extname(path).toLowerCase();
@@ -96,48 +96,12 @@ export async function transformAssets(changedFiles: Set<string> | null = null) {
 
   // Perform initial sync
   await initialAssetSync(srcDir, destDir);
-
-  // Set up watcher
-  // const watcher = Deno.watchFs([srcDir], { recursive: true });
-  // console.log("Watching for changes in assets directory...");
-
-  // // Debounced event handler
-  // const handleEvent = debounce(async (event: Deno.FsEvent) => {
-  //   console.log(`Change detected: ${event.kind}`, event.paths);
-
-  //   for (const path of event.paths) {
-  //     const relPath = relative(srcDir, path);
-  //     const destPath = join(destDir, relPath);
-
-  //     switch (event.kind) {
-  //       case "create":
-  //       case "modify":
-  //         if ((await Deno.stat(path)).isFile) {
-  //           await processFileEvent(path, destDir);
-  //           console.log(`Processed: ${path}`);
-  //         }
-  //         break;
-  //       case "remove":
-  //         try {
-  //           await Deno.remove(destPath, { recursive: true });
-  //           console.log(`Removed: ${destPath}`);
-  //         } catch (error) {
-  //           if (!(error instanceof Deno.errors.NotFound)) {
-  //             console.error(`Error removing ${destPath}: ${error}`);
-  //           }
-  //         }
-  //         break;
-  //     }
-  //   }
-  // }, 200); // 200ms debounce delay
-
-  // // Event loop
-  // for await (const event of watcher) {
-  //   await handleEvent(event);
-  // }
 }
 
 // Run the watcher
 if (import.meta.main) {
   transformAssets().catch(console.error);
+
+  //transform videos can be removed, as it is just a util and we dont expect video on every site
+  transformVideos().catch(console.error);
 }

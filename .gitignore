@@ -1,12 +1,23 @@
-# Based on https://raw.githubusercontent.com/github/gitignore/main/Node.gitignore
+# color in code global gitiggnore. reuse for bun, parcel, deno
 # locals
+*.orig
+*.pyc
+*.swp
+.env
 assets/
 working-files/
 dist/
 prod/
 node_modules/
+jspm_packages/
+*.tgz
+# deno specific
+*.code-workspace
+xutil/test/files/
+denoLandX/
+deno-dom/
+deno.lock
 # Logs
-
 logs
 _.log
 npm-debug.log_
@@ -22,8 +33,8 @@ lerna-debug.log*
 # Diagnostic reports (https://nodejs.org/api/report.html)
 
 report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
-
-# Runtime data
+.lock-wscript
+# runtime
 
 pids
 _.pid
@@ -38,9 +49,19 @@ lib-cov
 
 coverage
 *.lcov
-
-# nyc test coverage
-
+/.cargo_home/
+/.idea/
+/.vs/
+/.vscode/
+gclient_config.py_entries
+/target/
+/std/hash/_wasm/target
+/tests/wpt/runner/manifest.json
+/third_party/
+/tests/napi/node_modules
+/tests/napi/build
+/tests/napi/third_party_tests/node_modules
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .nyc_output
 
 # Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
@@ -124,49 +145,25 @@ out
 
 .nuxt
 dist
-
-# Gatsby files
-
-# Comment in the public line in if your project uses Gatsby and not Next.js
-
-# https://nextjs.org/blog/next-9-1#public-directory-support
-
-# public
-
-# vuepress build output
-
 .vuepress/dist
 
 # vuepress v2.x temp and cache directory
-
 .temp
 
 # Docusaurus cache and generated files
-
 .docusaurus
-
 # Serverless directories
-
 .serverless/
-
 # FuseBox cache
-
 .fusebox/
-
+.fuse_hidden*
 # DynamoDB Local files
-
 .dynamodb/
-
 # TernJS port file
-
 .tern-port
-
 # Stores VSCode versions used for testing VSCode extensions
-
 .vscode-test
-
 # yarn v2
-
 .yarn/cache
 .yarn/unplugged
 .yarn/build-state.yml
@@ -175,6 +172,51 @@ dist
 
 # IntelliJ based IDEs
 .idea
+# Flamegraphs
+/flamebench*.svg
+/flamegraph*.svg
 
-# Finder (MacOS) folder config
+# WPT generated cert files
+/tests/wpt/runner/certs/index.txt*
+/tests/wpt/runner/certs/serial*
+
+/ext/websocket/autobahn/reports
+
+# JUnit files produced by deno test --junit
+junit.xml
+
+# Jupyter files
+.ipynb_checkpoints/
+Untitled*.ipynb
+
+# playwright browser binary cache
+/.ms-playwright
+# mac stuff
 .DS_Store
+.DS_Store
+.DS_Store?
+.AppleDouble
+.LSOverride
+._*
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+# Windows stuff
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+$RECYCLE.BIN/
+Desktop.ini
+*.cab
+*.msi
+*.msm
+*.msp
+# Windows shortcuts
+*.lnk
+# Linux stuff
+*~
+.Trash-*
+.nfs*

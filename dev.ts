@@ -14,7 +14,7 @@ import { serveDir } from "https://deno.land/std@0.224.0/http/file_server.ts";
 import { acceptWebSocket, isWebSocketCloseEvent } from "https://deno.land/std@0.65.0/ws/mod.ts?s=WebSocketEvent";
 import { debounce } from "https://deno.land/std@0.224.0/async/debounce.ts";
 import { encoder } from 'https://deno.land/std@0.65.0/encoding/utf8.ts'
-
+const { stopAnimation, updateStatus } = startDinoAnimation();
 //defs
 interface Server {
   finished: Promise<void>;
@@ -86,17 +86,29 @@ async function mirrorDirectoryStructure(sourcePath: string, targetPath: string):
 
 async function build(changedFiles: Set<string> | null = null) {
   await mirrorDirectoryStructure(srcPath, distPath);
-
+  
   try {
+    updateStatus("🔧 Building HTML...");
     await transformHTML(changedFiles);
+
+    updateStatus("⚙️  Transpiling TypeScript...");
     await transformTS(changedFiles);
+
+    updateStatus("🎨 Compiling SCSS...");
     await transformSCSS(changedFiles);
+
+    updateStatus("📦 Processing Assets...");
     await transformAssets(changedFiles);
-    console.log("🤖 build complete");
+
+    stopAnimation();
+    console.log("🤖 Build complete!");
   } catch (error) {
-    console.error("Error during build process:", error);
+    console.error("❌ Error during build process:", error);
+    stopAnimation();
   }
 }
+
+
 
 const debouncedBuild = debounce(async (changedFiles: Set<string>) => {
   console.log("Debounced build triggered with changes:", Array.from(changedFiles));    
@@ -152,14 +164,22 @@ async function createServer() : Promise<void> {
     }
   });
   
-  console.log(`
-               __
-              / _)
-     _.----._/ /
-    /         /
- __/ (  | (  |
-/__.-'|_|--|_|
-`);
+// console.log(`
+//                __
+//               / _)
+//      _.----._/ /
+//     /         /
+//  __/ (  | (  |
+// /__.-'|_|--|_|
+// `);
+// console.log(`
+//  __
+// (_ \\
+//   \\ \\_.----._
+//    \\         \\
+//     |  ) |  ) \\__
+//     |_|--|_|'-.__\\
+// `);
   console.log(`Dinos have landed.🐱‍🐉 http://localhost:${availablePort}`);
 }
 
@@ -170,17 +190,6 @@ async function transformHTML(changedFiles: Set<string> | null = null) {
     if (changedFiles && !changedFiles.has(srcFile)) continue;
     const relativePath = relative(srcPath, srcFile);
     const distFile = join(distPath, relativePath);
-    
-    // try {
-    //   const srcStat = await Deno.stat(srcFile);
-    //   let shouldCopy = true;
-      
-    //   try {
-    //     const distStat = await Deno.stat(distFile);
-    //     shouldCopy = srcStat.mtime! > distStat.mtime!;
-    //   } catch (err) {
-    //     if (!(err instanceof Deno.errors.NotFound)) throw err;
-    //   }
     const srcStat = await Deno.stat(srcFile);
     const shouldCopy = await (async () => {
       try {
@@ -201,6 +210,20 @@ async function transformHTML(changedFiles: Set<string> | null = null) {
         onError: (error: Error) => console.error(`Error including partial: ${error.message}`),
       })
     ]).process(content);
+      // if (shouldCopy) {
+      //   await Deno.mkdir(join(distPath, relativePath, ".."), { recursive: true });
+      //   // read dir
+      //  let content = await Deno.readTextFile(srcFile);
+      //   // partial handling
+      //   const result = await posthtml([
+      //     include({
+      //       root: './src', // Where partials are stored
+      //       onError: (error: Error) => {
+      //         console.error(`Error including partial: ${error.message}`);
+      //       }
+      //     })
+      //   ]).process(content);
+      //might need to uncomment this
         content = result.html;
         // replace paths
         const transformedContent = content
@@ -217,6 +240,60 @@ async function transformHTML(changedFiles: Set<string> | null = null) {
         await Deno.writeTextFile(distFile, transformedContent);
         console.log(`Processed and copied ${srcFile} to ${distFile}`);
       }
+    }
+
+    function startDinoAnimation() {
+      const dinoRight = [
+        "               __",
+        "              / _)",
+        "     _.----._/ /",
+        "    /         /",
+        " __/ (  | (  |",
+        "/__.-'|_|--|_|",
+      ];
+    
+      const dinoLeft = [
+        " __",
+        "(_ \\",
+        "  \\ \\_.----._",
+        "   \\         \\",
+        "    |  ) |  ) \\__",
+        "    |_|--|_|'-.__\\",
+      ];
+    
+      let offset = 0;
+      let movingRight = true;
+      let statusMessage = "Starting build...";
+      let isRunning = true;
+      const interval = setInterval(() => {
+        if (!isRunning) return;
+        console.clear();
+        const dino = movingRight ? dinoRight : dinoLeft;
+        dino.forEach(line => console.log(" ".repeat(offset) + line));
+        console.log("\n" + " ".repeat(offset) + statusMessage);
+        if (movingRight) {
+          offset++;
+          if (offset > 30) movingRight = false;
+        } else {
+          offset--;
+          if (offset <= 0) {
+            movingRight = true;
+          }
+        }
+      }, 100);
+    
+      function updateStatusMessage(newMessage) {
+        statusMessage = newMessage;
+      }
+    
+      function stopAnimation() {
+        isRunning = false;
+        clearInterval(interval);
+        console.clear();
+        console.log("✅ Build complete!");
+      }
+    
+      return { stopAnimation, updateStatus: updateStatusMessage };
     }
 
 async function main(): Promise<void> {

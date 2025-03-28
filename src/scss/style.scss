@@ -10,7 +10,11 @@
 }
 body {
   background-color: rgba(0, 0, 0, 0.915);
-/* background-color: blue; */
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
   color: rgb(251, 251, 251);
 }
 
