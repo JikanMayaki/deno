@@ -98,43 +98,43 @@ export async function transformAssets(changedFiles: Set<string> | null = null) {
   await initialAssetSync(srcDir, destDir);
 
   // Set up watcher
-  const watcher = Deno.watchFs([srcDir], { recursive: true });
-  console.log("Watching for changes in assets directory...");
+  // const watcher = Deno.watchFs([srcDir], { recursive: true });
+  // console.log("Watching for changes in assets directory...");
 
-  // Debounced event handler
-  const handleEvent = debounce(async (event: Deno.FsEvent) => {
-    console.log(`Change detected: ${event.kind}`, event.paths);
+  // // Debounced event handler
+  // const handleEvent = debounce(async (event: Deno.FsEvent) => {
+  //   console.log(`Change detected: ${event.kind}`, event.paths);
 
-    for (const path of event.paths) {
-      const relPath = relative(srcDir, path);
-      const destPath = join(destDir, relPath);
+  //   for (const path of event.paths) {
+  //     const relPath = relative(srcDir, path);
+  //     const destPath = join(destDir, relPath);
 
-      switch (event.kind) {
-        case "create":
-        case "modify":
-          if ((await Deno.stat(path)).isFile) {
-            await processFileEvent(path, destDir);
-            console.log(`Processed: ${path}`);
-          }
-          break;
-        case "remove":
-          try {
-            await Deno.remove(destPath, { recursive: true });
-            console.log(`Removed: ${destPath}`);
-          } catch (error) {
-            if (!(error instanceof Deno.errors.NotFound)) {
-              console.error(`Error removing ${destPath}: ${error}`);
-            }
-          }
-          break;
-      }
-    }
-  }, 200); // 200ms debounce delay
+  //     switch (event.kind) {
+  //       case "create":
+  //       case "modify":
+  //         if ((await Deno.stat(path)).isFile) {
+  //           await processFileEvent(path, destDir);
+  //           console.log(`Processed: ${path}`);
+  //         }
+  //         break;
+  //       case "remove":
+  //         try {
+  //           await Deno.remove(destPath, { recursive: true });
+  //           console.log(`Removed: ${destPath}`);
+  //         } catch (error) {
+  //           if (!(error instanceof Deno.errors.NotFound)) {
+  //             console.error(`Error removing ${destPath}: ${error}`);
+  //           }
+  //         }
+  //         break;
+  //     }
+  //   }
+  // }, 200); // 200ms debounce delay
 
-  // Event loop
-  for await (const event of watcher) {
-    await handleEvent(event);
-  }
+  // // Event loop
+  // for await (const event of watcher) {
+  //   await handleEvent(event);
+  // }
 }
 
 // Run the watcher

@@ -15,47 +15,68 @@ import { acceptWebSocket, isWebSocketCloseEvent } from "https://deno.land/std@0.
 import { debounce } from "https://deno.land/std@0.224.0/async/debounce.ts";
 import { encoder } from 'https://deno.land/std@0.65.0/encoding/utf8.ts'
 
+//defs
+interface Server {
+  finished: Promise<void>;
+  shutdown(): Promise<void>;  // changed from close() to shutdown()
+  addr: Deno.NetAddr;     
+}
+//globals
 const port = 1234;
-const wss = new Set<WebSocket>();
 const srcPath = "./src";
 const distPath = "./dist";
-let server: typeof Deno.serve | null = null;
+
+//state
+const wss = new Set<WebSocket>();
+// let server: typeof Deno.serve | null = null;
+let server: Server | null = null;
 async function findAvailablePort(startPort: number): Promise<number> {
   let port = startPort;
   while (true) {
     try {
       const listener = Deno.listen({ port });
       await listener.close();
-      return port;
+      return port; //moved return here instead of lower
     } catch (error) {
       if (error instanceof Deno.errors.AddrInUse) {
         port++;
+        continue; //added continue
+    
       } else {
         throw error;
       }
     }
-    return port;
   }
 }
 
-async function mirrorDirectoryStructure(sourcePath: string, targetPath: string) {
+async function mirrorDirectoryStructure(sourcePath: string, targetPath: string): Promise<void>  {
   try {
-    // Ensure the target directory exists
+    // lets check if dir is there. 
     await Deno.mkdir(targetPath, { recursive: true });
 
     for await (const entry of Deno.readDir(sourcePath)) {
+      //just cleaned up syntax, shouldnt change func
       if (entry.isDirectory) {
-        let newDirName = entry.name;
+        const newDirName = targetPath.startsWith("./dist")
+          ? entry.name === "scss" ? "css" 
+          : entry.name === "ts" ? "js" 
+          : entry.name
+          : entry.name;
+          await mirrorDirectoryStructure(
+            `${sourcePath}/${entry.name}`,
+            `${targetPath}/${newDirName}`
+          );
+      // if (entry.isDirectory) {
+      //   let newDirName = entry.name;
         
-        // Change directory names for dist
-        if (targetPath.startsWith("./dist")) {
-          if (newDirName === "scss") newDirName = "css";
-          if (newDirName === "ts") newDirName = "js";
-        }
-
-        const newSourcePath = `${sourcePath}/${entry.name}`;
-        const newTargetPath = `${targetPath}/${newDirName}`;
-        await mirrorDirectoryStructure(newSourcePath, newTargetPath);
+      //   // Change directory names for dist
+      //   if (targetPath.startsWith("./dist")) {
+      //     if (newDirName === "scss") newDirName = "css";
+      //     if (newDirName === "ts") newDirName = "js";
+      //   }
+        // const newSourcePath = `${sourcePath}/${entry.name}`;
+        // const newTargetPath = `${targetPath}/${newDirName}`;
+        // await mirrorDirectoryStructure(newSourcePath, newTargetPath);
       }
     }
   } catch (error) {
@@ -68,28 +89,33 @@ async function build(changedFiles: Set<string> | null = null) {
 
   try {
     await transformHTML(changedFiles);
-
     await transformTS(changedFiles);
     await transformSCSS(changedFiles);
-    await createServer();
     await transformAssets(changedFiles);
-    console.log("_______________________________  build complete");
+    console.log("🤖 build complete");
   } catch (error) {
     console.error("Error during build process:", error);
   }
 }
 
 const debouncedBuild = debounce(async (changedFiles: Set<string>) => {
-  console.log("Debounced build triggered with changes:", Array.from(changedFiles));
+  console.log("Debounced build triggered with changes:", Array.from(changedFiles));    
   await build(changedFiles);
 }, 300);
 
-async function createServer() {
+async function createServer() : Promise<void> {
   if (server) {
-    await server.close(); // Close the existing server if it exists
+    await server.shutdown(); 
+    await server.finished;
   }
  const availablePort = await findAvailablePort(port);
- server = Deno.serve({ port: availablePort }, async (req) => {
+//  server = Deno.serve({ port: availablePort }, async (req) => {
+    server = Deno.serve({
+      port: availablePort,
+      onListen: ({ hostname, port }) => {
+        // console.log(`Dinos have landed. http://${hostname}:${port}`);
+      },
+    }, async (req: Request): Promise<Response> => {
     const url = new URL(req.url);
     const pathname = url.pathname;
   
@@ -126,7 +152,7 @@ async function createServer() {
     }
   });
   
-  console.log(`Dinos have landed. http://localhost:${availablePort}`);
+  console.log(`Dinos have landed.🐱‍🐉 http://localhost:${availablePort}`);
 }
 
 
@@ -193,30 +219,50 @@ async function transformHTML(changedFiles: Set<string> | null = null) {
     const relativePath = relative(srcPath, srcFile);
     const distFile = join(distPath, relativePath);
     
-    try {
-      const srcStat = await Deno.stat(srcFile);
-      let shouldCopy = true;
+    // try {
+    //   const srcStat = await Deno.stat(srcFile);
+    //   let shouldCopy = true;
       
+    //   try {
+    //     const distStat = await Deno.stat(distFile);
+    //     shouldCopy = srcStat.mtime! > distStat.mtime!;
+    //   } catch (err) {
+    //     if (!(err instanceof Deno.errors.NotFound)) throw err;
+    //   }
+    const srcStat = await Deno.stat(srcFile);
+    const shouldCopy = await (async () => {
       try {
         const distStat = await Deno.stat(distFile);
-        shouldCopy = srcStat.mtime! > distStat.mtime!;
+        return !distStat.mtime || (srcStat.mtime && srcStat.mtime > distStat.mtime);
       } catch (err) {
-        if (!(err instanceof Deno.errors.NotFound)) throw err;
+        return err instanceof Deno.errors.NotFound;
       }
-      
-      if (shouldCopy) {
-        await Deno.mkdir(join(distPath, relativePath, ".."), { recursive: true });
-        // read dir
-       let content = await Deno.readTextFile(srcFile);
-        // partial handling
-        const result = await posthtml([
-          include({
-            root: './src', // Where partials are stored
-            onError: (error: Error) => {
-              console.error(`Error including partial: ${error.message}`);
-            }
-          })
-        ]).process(content);
+    })();
+
+    if (!shouldCopy) continue;
+    await Deno.mkdir(join(distPath, relativePath, ".."), { recursive: true });
+    let content = await Deno.readTextFile(srcFile);
+    
+    const result = await posthtml([
+      include({
+        root: srcPath,
+        onError: (error: Error) => console.error(`Error including partial: ${error.message}`),
+      })
+    ]).process(content);
+      // if (shouldCopy) {
+      //   await Deno.mkdir(join(distPath, relativePath, ".."), { recursive: true });
+      //   // read dir
+      //  let content = await Deno.readTextFile(srcFile);
+      //   // partial handling
+      //   const result = await posthtml([
+      //     include({
+      //       root: './src', // Where partials are stored
+      //       onError: (error: Error) => {
+      //         console.error(`Error including partial: ${error.message}`);
+      //       }
+      //     })
+      //   ]).process(content);
+      //might need to uncomment this
         content = result.html;
         // replace paths
         const transformedContent = content
@@ -230,15 +276,9 @@ async function transformHTML(changedFiles: Set<string> | null = null) {
         await Deno.writeTextFile(distFile, transformedContent);
         console.log(`Processed and copied ${srcFile} to ${distFile}`);
       }
-    } catch (err) {
-      console.error(`Error processing ${srcFile}:`, err);
     }
-  }
-  console.log("HTML file copying complete.");
-}
 
-
-async function main() {
+async function main(): Promise<void> {
   await build();
   await createServer();
   
