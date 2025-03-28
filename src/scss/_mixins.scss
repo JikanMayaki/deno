@@ -44,6 +44,31 @@ $breakpoints: (
     }
 }
 
+.outer__wrapper  {
+    @util clearfix; // Adds clearfix utility
+    @util center;   // Centers the element
+    display: flex;
+    padding: 1rem;
+  }
+  
+  .footer {
+      @util sticky-footer;
+  }
+  
+  .box-16-9 {
+    @util aspect-ratio(16:9);
+  }
+
+
+  .dev-border-styles {
+    @util border-top-radius(1px);
+    @util border-right-radius(2px);
+    @util border-bottom-radius(3px);
+    @util border-left-radius(4px);
+  }
+  .child {
+    @util center;
+  }
 // font face property helper, bring it into scss/css files, no need to mix in..yet
 // @font-face {
 //     font-family: quote($name);
@@ -52,3 +77,20 @@ $breakpoints: (
 //     font-display: swap;
 //     src: $src;
 // }
+//center flex box
+.parent {
+    @util center;
+  }
+
+// HD breakpoints,  If you set dpi the utility will calculate the dppx equivalent, and vice versa.
+@util hd {
+    // .foo {
+    //   float: right;
+    // }
+  }
+  
+  @util hd(192dpi) {
+    // .bar {
+    //   float: left;
+    // }
+  }

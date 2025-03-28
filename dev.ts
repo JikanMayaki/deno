@@ -152,64 +152,16 @@ async function createServer() : Promise<void> {
     }
   });
   
+  console.log(`
+               __
+              / _)
+     _.----._/ /
+    /         /
+ __/ (  | (  |
+/__.-'|_|--|_|
+`);
   console.log(`Dinos have landed.🐱‍🐉 http://localhost:${availablePort}`);
 }
-
-
-//   const wss = new Set<WebSocket>(); // Assuming this is defined globally in your script
-
-//   const handler = async (req: Request): Promise<Response> => {
-//     const url = new URL(req.url);
-//     const pathname = url.pathname;
-
-//     // Handle WebSocket upgrade
-//     if (pathname === "/ws") {
-//       const { socket, response } = Deno.upgradeWebSocket(req);
-//       socket.onopen = () => {
-//         wss.add(socket);
-//         console.log("WebSocket connected");
-//       };
-//       socket.onclose = () => {
-//         wss.delete(socket);
-//         console.log("WebSocket disconnected");
-//       };
-//     Deno.upgradeWebSocket(req);
-//     socket.onopen = () => {
-//       wss.add(socket);
-//       console.log("WebSocket connected");
-//     };
-//     socket.onclose = () => {
-//       wss.delete(socket);
-//       console.log("WebSocket disconnected");
-//     };
-//     socket.onerror = (error) => {
-//       console.error("WebSocket error:", error);
-//       wss.delete(socket);
-//     };
-//       return response;
-//     }
-
-//     // Serve static files from distPath
-//     try {
-//       return await serveDir(req, {
-//         fsRoot: distPath,
-//         showDirListing: false,
-//         quiet: true, // Suppresses default logging; remove if you want file serving logs
-//       });
-//     } catch (error) {
-//       console.error(`Error serving ${pathname}:`, error);
-//       return new Response("Not Found", { status: 404 });
-//     }
-//   };
-
-//   // Start the server
-//   Deno.serve({ port: availablePort, handler }, (info) => {
-//     console.log(`Dinos have landed. http://${info.hostname}:${info.port}`);
-//   });
-
-//   return wss; // Return wss so it can be used elsewhere (optional)
-// }
-
 
 async function transformHTML(changedFiles: Set<string> | null = null) {
   console.log("Starting HTML file copying...");
@@ -249,29 +201,18 @@ async function transformHTML(changedFiles: Set<string> | null = null) {
         onError: (error: Error) => console.error(`Error including partial: ${error.message}`),
       })
     ]).process(content);
-      // if (shouldCopy) {
-      //   await Deno.mkdir(join(distPath, relativePath, ".."), { recursive: true });
-      //   // read dir
-      //  let content = await Deno.readTextFile(srcFile);
-      //   // partial handling
-      //   const result = await posthtml([
-      //     include({
-      //       root: './src', // Where partials are stored
-      //       onError: (error: Error) => {
-      //         console.error(`Error including partial: ${error.message}`);
-      //       }
-      //     })
-      //   ]).process(content);
-      //might need to uncomment this
         content = result.html;
         // replace paths
         const transformedContent = content
-        .replace(/(?<=href="|src=")\.?\/(scss|ts)\//g, "./$1/")
-        .replace(/(?<=href="|src=")\.\/(scss)\//g, "./css/")
-        .replace(/(?<=href="|src=")\.\/(ts)\//g, "./js/")
-        .replace(/(?<=href="|src=")(.+)\.scss/g, "$1.css")
-        .replace(/(?<=href="|src=")(.+)\.ts/g, "$1.js")
-        .replace(/(?<=href="|src=")\.\.\/assets\//g, "./assets/");
+          // Change scss to css (both directory and extension)
+          .replace(/(?<=href="|src=")(.+\/)?scss\/(.+?)\.scss/g, "$1css/$2.css")
+          // Change ts to js (both directory and extension)
+          .replace(/(?<=href="|src=")(.+\/)?ts\/(.+?)\.ts/g, "$1js/$2.js")
+          // Handle the assets path
+          .replace(/(?<=href="|src=")\.\.\/assets\//g, "./assets/")
+          // Clean up any remaining scss or ts in the path
+          .replace(/(?<=href="|src=")(.+\/)scss\//g, "$1css/")
+          .replace(/(?<=href="|src=")(.+\/)ts\//g, "$1js/");
         // Write the transformed content
         await Deno.writeTextFile(distFile, transformedContent);
         console.log(`Processed and copied ${srcFile} to ${distFile}`);
