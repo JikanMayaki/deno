@@ -1,3 +1,4 @@
+// deno-lint-ignore-file no-unused-vars
 import { ensureDir, walk, ensureDirSync, walkSync } from "https://deno.land/std@0.224.0/fs/mod.ts";
 import { join, basename, relative, dirname } from "https://deno.land/std@0.224.0/path/mod.ts";
 import * as sass from "npm:sass";
@@ -10,7 +11,7 @@ import { debounce } from "https://deno.land/std@0.224.0/async/debounce.ts";
 
 const processedFiles = new Set<string>();
 
-async function processFile(file: string, srcPath: string, distPath: string): Promise<void> {
+async function processFile(file: string, srcPath: string, distPath: string, isProd: boolean = false): Promise<void> {
   try {
     const relativePath = relative(srcPath, file);
     const outputFilename = basename(file).replace(/\.(scss|css)$/, '.css');
@@ -36,7 +37,6 @@ async function processFile(file: string, srcPath: string, distPath: string): Pro
       postcssUtilities({
         clearfix: true, // Example utility
         center: true,   // Example utility
-        
       }),
       autoprefixer({
         overrideBrowserslist: ["last 2 versions", "> 1%"],
@@ -54,7 +54,8 @@ async function processFile(file: string, srcPath: string, distPath: string): Pro
     const { code } = transform({
       filename: basename(file),
       code: new TextEncoder().encode(postCssResult.css),
-      minify: false,
+      minify: isProd,
+      // removeComments: isProd,
     });
 
     await Deno.writeTextFile(distFile, new TextDecoder().decode(code));
@@ -66,15 +67,13 @@ async function processFile(file: string, srcPath: string, distPath: string): Pro
   }
 }
 
-export async function transformSCSS(changedFiles: Set<string> | null = null): Promise<void> {
-  console.log("Starting SCSS to CSS conversion...");
+export async function transformSCSS(changedFiles: Set<string> | null = null, isProd: boolean = false): Promise<void> {
   const srcPath = "./src/scss";
-  const distPath = "./dist/css";
+  const distPath = isProd ? "./prod/css" : "./dist/css";
   
   await ensureDir(distPath);
   
   if (!changedFiles) {
-    console.log("Processing all files (initial run)...");
     const processPromises: Promise<void>[] = [];
     for await (const entry of walk(srcPath, { exts: [".scss", ".css"] })) {
       // console.log(`Found file to process: ${entry.path}`);
@@ -89,13 +88,13 @@ export async function transformSCSS(changedFiles: Set<string> | null = null): Pr
         // console.log(`Queuing file to process: ${file}`);
         processPromises.push(processFile(file, srcPath, distPath));
       } else {
-        console.log(`Skipping non-SCSS/CSS file: ${file}`);
+        // console.log(`Skipping non-SCSS/CSS file: ${file}`);
       }
     }
     await Promise.all(processPromises);
   }
   
-  console.log("SCSS to CSS conversion completed 🦖");
+  // console.log("SCSS to CSS conversion completed 🦖");
 }
 
 

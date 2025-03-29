@@ -4,11 +4,12 @@
   "author": "Color in Code <(colorincodeme@gmail.com)>",
   "homepage": "https://github.com/colorincode/deno",
   "tasks": {
-  "clean": "deno run --allow-read --allow-write clear.ts",
-  "dev": "deno run --allow-read --allow-write --allow-net --allow-run --allow-env --allow-sys --allow-ffi --watch dev.ts",
-  "lint": "biome lint ./src",
-  "lint:fix": "biome check --apply ./src",
-  "prod": "deno run --watch prod.ts "
+    "patch-fontawesome":"deno run --allow-all ./utils/patch-fontawesome-sass.ts",
+    "clean": "deno run --allow-all clear.ts",
+    "dev": "deno run --allow-all --watch dev.ts",
+    "prod": "deno run --allow-all prod.ts",
+    "lint": "biome lint ./prod",
+    "lint:fix": "biome check --write ./prod"
 },
 "nodeModulesDir": "auto",
   "imports": {
@@ -42,7 +43,7 @@
     "zod": "npm:zod@^3.24.2"
   },
   "lint": {
-    "enable": false
+    "enabled": false
   },
   "unstable": [
     "kv",

@@ -1,0 +1,19 @@
+❌ Issues found in: prod\js\app.js
+C:\Users\kbrac\Pictures\projects\sandbox\deno-port\biome.json:8:7 deserialize  DEPRECATED  ━━━━━━━━━━
+
+  ! The property indentSize is deprecated. Use formatter.indentWidth instead.
+  
+     6 │     "formatter": {
+     7 │       "indentStyle": "space",
+   > 8 │       "indentSize": 2
+       │       ^^^^^^^^^^^^
+     9 │     },
+    10 │     "linter": {
+  
+
+internalError/io ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × No files were processed in the specified paths.
+  
+
+

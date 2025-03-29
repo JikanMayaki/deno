@@ -43,6 +43,7 @@
     "jsr:@std/path@^1.0.8": "1.0.8",
     "jsr:@std/streams@^1.0.9": "1.0.9",
     "jsr:@std/testing@^1.0.10": "1.0.10",
+    "npm:@biomejs/biome@1.9.4": "1.9.4",
     "npm:@biomejs/biome@^1.9.4": "1.9.4",
     "npm:@trpc/client@11": "11.0.0_@trpc+server@11.0.0__typescript@5.8.2_typescript@5.8.2",
     "npm:@trpc/server@11": "11.0.0_typescript@5.8.2",

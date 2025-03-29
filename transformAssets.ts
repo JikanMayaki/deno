@@ -1,6 +1,6 @@
 import { walkSync } from "https://deno.land/std@0.224.0/fs/mod.ts";
 import { join, relative, extname, dirname } from "https://deno.land/std@0.224.0/path/mod.ts";
-import { transformVideos } from "./utils/processVideo_utils.ts";
+
 // Utility to check if a path is an image
 function isImage(path: string): boolean {
   const ext = extname(path).toLowerCase();
@@ -50,7 +50,7 @@ async function optimizeImage(inputPath: string) {
 
 // Initial full copy and optimization of assets
 async function initialAssetSync(src: string, dest: string) {
-  console.log("Performing initial asset sync...");
+  // console.log("Performing initial asset sync...");
   await Deno.remove(dest, { recursive: true }).catch(() => {});
   await Deno.mkdir(dest, { recursive: true });
 
@@ -64,9 +64,8 @@ async function initialAssetSync(src: string, dest: string) {
       }
     }
   }
-  console.log("Initial asset sync completed.");
+  // console.log("Initial asset sync completed.");
 }
-
 // Process a single file event (add/modify)
 async function processFileEvent(srcPath: string, destBase: string) {
   const relPath = relative("./assets", srcPath);
@@ -93,7 +92,6 @@ function debounce(fn: (...args: any[]) => void, delay: number) {
 export async function transformAssets(changedFiles: Set<string> | null = null) {
   const srcDir = "./assets";
   const destDir = "./dist/assets";
-
   // Perform initial sync
   await initialAssetSync(srcDir, destDir);
 }
@@ -101,7 +99,4 @@ export async function transformAssets(changedFiles: Set<string> | null = null) {
 // Run the watcher
 if (import.meta.main) {
   transformAssets().catch(console.error);
-
-  //transform videos can be removed, as it is just a util and we dont expect video on every site
-  transformVideos().catch(console.error);
 }

@@ -6,6 +6,7 @@
 .env
 assets/
 working-files/
+workingfiles/
 dist/
 prod/
 node_modules/
@@ -96,7 +97,7 @@ web_modules/
 # Optional npm cache directory
 
 .npm
-
+.npmrc
 # Optional eslint cache
 
 .eslintcache
