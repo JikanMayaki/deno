@@ -29,6 +29,7 @@ const distPath = "./dist";
 
 //state
 const wss = new Set<WebSocket>();
+// let server: typeof Deno.serve | null = null;
 let server: Server | null = null;
 async function findAvailablePort(startPort: number): Promise<number> {
   let port = startPort;
@@ -48,10 +49,12 @@ async function findAvailablePort(startPort: number): Promise<number> {
     }
   }
 }
+
 async function mirrorDirectoryStructure(sourcePath: string, targetPath: string): Promise<void>  {
   try {
     // lets check if dir is there. 
     await Deno.mkdir(targetPath, { recursive: true });
+
     for await (const entry of Deno.readDir(sourcePath)) {
       //just cleaned up syntax, shouldnt change func
       if (entry.isDirectory) {
@@ -64,12 +67,24 @@ async function mirrorDirectoryStructure(sourcePath: string, targetPath: string):
             `${sourcePath}/${entry.name}`,
             `${targetPath}/${newDirName}`
           );
+      // if (entry.isDirectory) {
+      //   let newDirName = entry.name;
+        
+      //   // Change directory names for dist
+      //   if (targetPath.startsWith("./dist")) {
+      //     if (newDirName === "scss") newDirName = "css";
+      //     if (newDirName === "ts") newDirName = "js";
+      //   }
+        // const newSourcePath = `${sourcePath}/${entry.name}`;
+        // const newTargetPath = `${targetPath}/${newDirName}`;
+        // await mirrorDirectoryStructure(newSourcePath, newTargetPath);
       }
     }
   } catch (error) {
     console.error(`Error processing ${sourcePath}:`, error);
   }
 }
+
 
 async function build(changedFiles: Set<string> | null = null) {
   await mirrorDirectoryStructure(srcPath, distPath);
@@ -78,15 +93,19 @@ async function build(changedFiles: Set<string> | null = null) {
     // updateStatus("🔧 building dist HTML...");
     await transformHTML(changedFiles);
     updateStatus("HTML");
+
     // updateStatus("⚙️  transpiling dist TypeScript...");
     await transformTS(changedFiles);
     updateStatus("JS");
+
     // updateStatus("🎨 compiling dist SCSS...");
     await transformSCSS(changedFiles);
     updateStatus("CSS");
+
     // updateStatus("📦 processing dist Assets...");
     await transformAssets(changedFiles);
     updateStatus("assets");
+
     stopAnimation();
   } catch (error) {
     stopAnimation();
@@ -106,6 +125,7 @@ async function createServer() : Promise<void> {
     await server.finished;
   }
  const availablePort = await findAvailablePort(port);
+//  server = Deno.serve({ port: availablePort }, async (req) => {
     server = Deno.serve({
       port: availablePort,
       onListen: ({ hostname, port }) => {
@@ -156,6 +176,7 @@ async function transformHTML(changedFiles: Set<string> | null = null) {
     if (changedFiles && !changedFiles.has(srcFile)) continue;
     const relativePath = relative(srcPath, srcFile);
     const distFile = join(distPath, relativePath);
+
     const srcStat = await Deno.stat(srcFile);
     const shouldCopy = await (async () => {
       try {
@@ -169,34 +190,59 @@ async function transformHTML(changedFiles: Set<string> | null = null) {
     if (!shouldCopy) continue;
     await Deno.mkdir(join(distPath, relativePath, ".."), { recursive: true });
     let content = await Deno.readTextFile(srcFile);
-    
+
     const result = await posthtml([
       include({
         root: srcPath,
         onError: (error: Error) => console.error(`Error including partial: ${error.message}`),
-      })
+      }),
     ]).process(content);
-        content = result.html;
-        // replace paths
-        const transformedContent = content
-          // Change scss to css (both directory and extension)
-          .replace(/(?<=href="|src=")(.+\/)?scss\/(.+?)\.scss/g, "$1css/$2.css")
-          // Change ts to js (both directory and extension)
-          .replace(/(?<=href="|src=")(.+\/)?ts\/(.+?)\.ts/g, "$1js/$2.js")
-          // Handle the assets path
-          .replace(/(?<=href="|src=")\.\.\/assets\//g, "./assets/")
-          // Clean up any remaining scss or ts in the path
-          .replace(/(?<=href="|src=")(.+\/)scss\//g, "$1css/")
-          .replace(/(?<=href="|src=")(.+\/)ts\//g, "$1js/");
-        // Write the transformed content
-        await Deno.writeTextFile(distFile, transformedContent);
-        console.log(`Processed and copied ${srcFile} to ${distFile}`);
+
+    content = result.html;
+
+    const webSocketScript = `
+<script>
+  const ws = new WebSocket(\`ws://localhost:\${location.port}/ws\`);
+  
+  ws.onmessage = (event) => {
+      if (event.data === "reload") {
+          location.reload();
       }
-    }
+  };
+  
+  ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+  };
+  
+  ws.onclose = () => {
+      console.log('WebSocket connection closed');
+  };
+  
+  ws.onopen = () => {
+      console.log('WebSocket connection established');
+  };
+</script>
+`;
+    
+    content = content.replace(/<\/body>/, `${webSocketScript}\n</body>`);
+
+    const transformedContent = content
+      .replace(/(?<=href="|src=")(.+\/)?scss\/(.+?)\.scss/g, "$1css/$2.css")
+      .replace(/(?<=href="|src=")(.+\/)?ts\/(.+?)\.ts/g, "$1js/$2.js")
+      .replace(/(?<=href="|src=")\.\.\/assets\//g, "./assets/")
+      .replace(/(?<=href="|src=")(.+\/)scss\//g, "$1css/")
+      .replace(/(?<=href="|src=")(.+\/)ts\//g, "$1js/");
+
+    await Deno.writeTextFile(distFile, transformedContent);
+    console.log(`Processed and copied ${srcFile} to ${distFile}`);
+  }
+}
+
 
 async function main(): Promise<void> {
   await build();
   await createServer();
+  
   const watcher = Deno.watchFs(["src"], { recursive: true });
   console.log("Watching for changes in src directory...");
   for await (const event of watcher) {

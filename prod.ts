@@ -1,12 +1,8 @@
 //TODO
-//needs to strip the live reload / websocket script from footer 
-//add the websocket in dev and dont add it here
-//remove websocket code from footer partial
-//strip comments from dist
-//strip console logs
+//optimize videos
+//optimize images
 //pass in prod to assets
-//nice to have: gzip. more dino. 
-//we need to add some supports to lightning/postcss (have already put in imports etc)
+
 // deno-lint-ignore-file no-unused-vars
 import { ensureDir, walk } from "https://deno.land/std@0.224.0/fs/mod.ts";
 import { dirname, join, relative } from "https://deno.land/std@0.224.0/path/mod.ts";
@@ -66,7 +62,7 @@ async function build(changedFiles: Set<string> | null = null, isProd: boolean = 
       await transformSCSS(changedFiles, isProd);
       updateStatus("CSS");
       // updateStatus("📦 processing Assets...");
-      await transformAssets(changedFiles);
+      await transformAssets(changedFiles, isProd);
       updateStatus("assets");
       await runBiome();
       updateStatus("biome");
@@ -98,7 +94,7 @@ async function runBiome() {
 
         const lintCommand = new Deno.Command("biome", {
           args: ["check", entry.path, "--write"],
-          stdout: "piped",  // Capture output instead of logging
+          stdout: "piped",  // capture output instead of logging
           stderr: "piped",
         });
 
@@ -165,8 +161,10 @@ async function transformHTML(changedFiles: Set<string> | null = null) {
         onError: (error: Error) => console.error(`Error including partial: ${error.message}`),
       })
     ]).process(content);
-
+        
         content = result.html;
+        content = content.replace(/<!--[\s\S]*?-->/g, ""); // rm comments
+        content = content.replace(/^\s*[\r\n]/gm, ""); // rm empty lines
         // replace paths
         const transformedContent = content
           .replace(/(?<=href="|src=")(.+\/)?scss\/(.+?)\.scss/g, "$1css/$2.css")

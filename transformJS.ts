@@ -45,16 +45,17 @@ export async function transformTS(changedFiles: Set<string> | null = null, isPro
   try {
     // console.log(`Bundling ${entryPoints.length} TS files into ${distPath}...`);
     const result = await esbuild.build({
-      entryPoints,                // not sure if i need to add glob here, hoping it traverses/walks dir
-      outdir: distPath,           // dist/js
-      bundle: true,               // bundling hopefully work better
-      format: "esm",              // i didnt like there being empty space here
-      splitting: true,            // optional, may or may not work shaky results
-      treeShaking: true,          // optional,remove unused code
-      minify: isProd,             // minification for production
-      plugins: [ shaderPlugin ],   // i didnt like there being empty space here
-      drop: isProd ? ["console"] : []
+      entryPoints,                          // not sure if i need to add glob here, hoping it traverses/walks dir
+      outdir: distPath,                     // dist/js
+      bundle: true,                         // bundling hopefully work better
+      format: "esm",                        // i didnt like there being empty space here
+      splitting: true,                      // optional, may or may not work shaky results
+      treeShaking: true,                    // optional,remove unused code
+      minify: isProd,                       // minification for production
+      plugins: [ shaderPlugin ],            // i didnt like there being empty space here
+      pure: isProd ? ["console.log"] : []   // drop console.logs 
     });
+
     if (result.errors.length > 0) {
       console.error("TS transform failed:", result.errors);
       result.errors.forEach((error: { text: string }) => {
@@ -76,5 +77,62 @@ export async function transformTS(changedFiles: Set<string> | null = null, isPro
     esbuild.stop();
   }
 
-  console.log(`TS ${isProd ? "production" : "development"} bundling complete.🎉`);
+  // console.log(`TS ${isProd ? "production" : "development"} bundling complete.🎉`);
 }
+
+
+// export async function transformTS(changedFiles: Set<string> | null = null) {
+//   if (import.meta.main) {
+//   await checkNodeModules();
+//   }
+//   console.log("Starting TS bundling...");
+//   const srcPath = "./src/ts";
+//   const distPath = "./dist/js";
+
+//   await Deno.mkdir(distPath, { recursive: true });
+//   const entryPoints = [];
+//   for await (const entry of walk(srcPath, { 
+//     exts: [".ts", ".shader", ".vert", ".glsl", ".frag"], 
+//     // exts: [".ts"], 
+//     skip: [/\.d\.ts$/] 
+//   })) 
+//   {
+//     const relativePath = relative(Deno.cwd(), entry.path);
+//     entryPoints.push(relativePath);
+//   }
+//     try {
+//       console.log(`Bundling ${entryPoints.length} TS files into ${distPath}...`);
+//       //changed result to resolve with esbuild, better than deno's native bundling
+//       const result = await esbuild.build({
+//         entryPoints,           // not sure if i need to add glob here, hoping it traverses/walks dir
+//         outdir: distPath,      // dist/js
+//         bundle: true,          // bundling hopefully work better
+//         format: "esm",       
+//         splitting: true,       // optional, may or may not work shaky results
+//         treeShaking: true,     // optional,remove unused code
+//         plugins: [  shaderPlugin,]
+//       });
+//       // transformVariousFiles();
+//       if (result.errors.length > 0) {
+//         console.error("TS transform failed:", result.errors);
+//         result.errors.forEach((error: { text: string }) => {
+//           if (error.text.includes("Could not resolve")) {
+//             const match = error.text.match(/Could not resolve "([^"]+)"/);
+//             if (match) {
+//               console.error(`Missing dependency: "${match[1]}". Run \`npm install ${match[1]}\`.`);
+//             }
+//           }
+//         });
+//       } else if (result.warnings.length > 0) {
+//         console.warn("TS transform warnings:", result.warnings);
+//       } else {
+//         console.log("TS files transformed successfully.");
+//       }
+//     } catch (err) {
+//       console.error("Error during TS bundling:", err);
+//     } finally {
+//       esbuild.stop(); // Clean up esbuild resources once
+//     }
+  
+//     console.log("TS bundling complete.🎉");
+//   }

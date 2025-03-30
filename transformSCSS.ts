@@ -1,4 +1,3 @@
-// deno-lint-ignore-file no-unused-vars
 import { ensureDir, walk, ensureDirSync, walkSync } from "https://deno.land/std@0.224.0/fs/mod.ts";
 import { join, basename, relative, dirname } from "https://deno.land/std@0.224.0/path/mod.ts";
 import * as sass from "npm:sass";
@@ -55,7 +54,6 @@ async function processFile(file: string, srcPath: string, distPath: string, isPr
       filename: basename(file),
       code: new TextEncoder().encode(postCssResult.css),
       minify: isProd,
-      // removeComments: isProd,
     });
 
     await Deno.writeTextFile(distFile, new TextDecoder().decode(code));

@@ -66,6 +66,7 @@ async function initialAssetSync(src: string, dest: string) {
   }
   // console.log("Initial asset sync completed.");
 }
+
 // Process a single file event (add/modify)
 async function processFileEvent(srcPath: string, destBase: string) {
   const relPath = relative("./assets", srcPath);
@@ -89,11 +90,13 @@ function debounce(fn: (...args: any[]) => void, delay: number) {
 }
 
 // Main watcher logic
-export async function transformAssets(changedFiles: Set<string> | null = null) {
+export async function transformAssets(changedFiles: Set<string> | null = null, isProd: boolean = false) {
   const srcDir = "./assets";
-  const destDir = "./dist/assets";
+  const destDir = isProd ? "./prod/assets" : "./dist/assets";
+
   // Perform initial sync
   await initialAssetSync(srcDir, destDir);
+
 }
 
 // Run the watcher
