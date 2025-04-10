@@ -18,7 +18,6 @@ async function processFile(file: string, srcPath: string, distPath: string, isPr
     const distFile = join(outputDir, outputFilename);
 
     await ensureDir(outputDir);
-
     let cssContent: string;
 
     if (file.endsWith(".scss")) {
@@ -74,8 +73,10 @@ export async function transformSCSS(changedFiles: Set<string> | null = null, isP
   if (!changedFiles) {
     const processPromises: Promise<void>[] = [];
     for await (const entry of walk(srcPath, { exts: [".scss", ".css"] })) {
+      processPromises.push(processFile(entry.path, srcPath, distPath, isProd));
+
       // console.log(`Found file to process: ${entry.path}`);
-      processPromises.push(processFile(entry.path, srcPath, distPath));
+      // processPromises.push(processFile(entry.path, srcPath, distPath));
     }
     await Promise.all(processPromises);
   } else {
@@ -84,7 +85,9 @@ export async function transformSCSS(changedFiles: Set<string> | null = null, isP
     for (const file of changedFiles) {
       if (file.endsWith(".scss") || file.endsWith(".css")) {
         // console.log(`Queuing file to process: ${file}`);
-        processPromises.push(processFile(file, srcPath, distPath));
+        processPromises.push(processFile(file, srcPath, distPath, isProd));
+
+        // processPromises.push(processFile(file, srcPath, distPath));
       } else {
         // console.log(`Skipping non-SCSS/CSS file: ${file}`);
       }

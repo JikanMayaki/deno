@@ -1,53 +1,59 @@
 import { walkSync } from "https://deno.land/std@0.224.0/fs/mod.ts";
 import { join, relative, extname, dirname } from "https://deno.land/std@0.224.0/path/mod.ts";
+// import { tmpdir } from "https://deno.land/std@0.224.0/os/mod.ts";
+import { basename } from "https://deno.land/std@0.224.0/path/mod.ts";
+import "./utils/processVideo_utils.ts"
+import { transformVideos } from './utils/processVideo_utils.ts'
+// import { toBytes } from "https://deno.land/std/streams/conversion.ts";
+import sharp from "npm:sharp";
+
 
 // Utility to check if a path is an image
 function isImage(path: string): boolean {
   const ext = extname(path).toLowerCase();
   return [".jpg", ".jpeg", ".png", ".webp", ".avif", ".tiff", ".svg", ".gif"].includes(ext);
 }
-
-// Copy a single file from source to destination
 async function copyFile(src: string, dest: string) {
   const destDir = dirname(dest);
   await Deno.mkdir(destDir, { recursive: true });
   await Deno.copyFile(src, dest);
 }
 
-// Optimize an image in-place using Sharp via npx
-async function optimizeImage(inputPath: string) {
+async function optimizeImage(inputPath: string, outputPath: string) {
   const ext = extname(inputPath).toLowerCase();
-  const args = ["sharp", "-i", inputPath, "-o", inputPath]; // Overwrite in-place
+  const tempFileDir = join(outputPath, ext);
+  let image = sharp(inputPath);
 
   switch (ext) {
     case ".jpg":
     case ".jpeg":
-      args.push("--jpeg", "--quality", "80");
+      image = image.jpeg({ quality: 80 });
       break;
     case ".png":
-      args.push("--png", "--quality", "80", "--compression", "9");
+      image = image.png({ compressionLevel: 9 });
       break;
-    case ".webp":
-      args.push("--webp", "--quality", "80");
+    case ".webP":
+      image = image.webp({ quality: 80 });
       break;
     case ".avif":
-      args.push("--avif", "--quality", "80");
+      image = image.avif({ quality: 80 });
       break;
     case ".gif":
-      // GIF might need special handling; for now, skip optimization
       return;
     default:
-      return; // Skip unsupported formats
+      return;
   }
-
+  const outputDir = dirname(outputPath);
+  await Deno.mkdir(outputDir, { recursive: true });
+  const tempFilePath = join(outputDir, `${basename(outputPath, ext)}.tmp${ext}`);
   try {
-    const cmd = new Deno.Command("npx", { args });
-    await cmd.output();
+    await image.toFile(tempFilePath);
+    await Deno.remove(outputPath).catch(() => {});
+    await Deno.rename(tempFilePath, outputPath);
   } catch (error) {
-    console.error(`Failed to optimize ${inputPath}: ${error}`);
+    console.error(`Error optimizing ${inputPath}: ${error}`);
   }
 }
-
 // Initial full copy and optimization of assets
 async function initialAssetSync(src: string, dest: string) {
   // console.log("Performing initial asset sync...");
@@ -59,24 +65,21 @@ async function initialAssetSync(src: string, dest: string) {
       const relPath = relative(src, entry.path);
       const destPath = join(dest, relPath);
       await copyFile(entry.path, destPath);
-      if (isImage(destPath)) {
-        await optimizeImage(destPath);
+      if (isImage(entry.path)) { // Use full source path
+        await optimizeImage(entry.path, destPath); // Pass full paths
       }
     }
   }
   // console.log("Initial asset sync completed.");
 }
-
 // Process a single file event (add/modify)
 async function processFileEvent(srcPath: string, destBase: string) {
   const relPath = relative("./assets", srcPath);
   const destPath = join(destBase, relPath);
 
+  await copyFile(srcPath, destPath);
   if (isImage(srcPath)) {
-    await copyFile(srcPath, destPath);
-    await optimizeImage(destPath);
-  } else {
-    await copyFile(srcPath, destPath);
+    await optimizeImage(srcPath, destPath); // Use full paths
   }
 }
 
@@ -94,12 +97,20 @@ export async function transformAssets(changedFiles: Set<string> | null = null, i
   const srcDir = "./assets";
   const destDir = isProd ? "./prod/assets" : "./dist/assets";
 
-  // Perform initial sync
-  await initialAssetSync(srcDir, destDir);
-
+  if (changedFiles && changedFiles.size > 0) {
+    // Process only changed files
+    for (const file of changedFiles) {
+      await processFileEvent(file, destDir);
+    }
+  } else {
+    // Perform initial sync
+    await initialAssetSync(srcDir, destDir);
+  }
+  
+  await transformVideos();
 }
 
 // Run the watcher
-if (import.meta.main) {
-  transformAssets().catch(console.error);
-}
+// if (import.meta.main) {
+//   transformAssets().catch(console.error);
+// }

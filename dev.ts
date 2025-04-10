@@ -1,6 +1,6 @@
 // deno-lint-ignore-file no-unused-vars
 import { ensureDir, walk } from "https://deno.land/std@0.224.0/fs/mod.ts";
-import { dirname, join, relative } from "https://deno.land/std@0.224.0/path/mod.ts";
+import { dirname, join, relative , resolve} from "https://deno.land/std@0.224.0/path/mod.ts";
 import { Application, send } from "https://deno.land/x/oak@v17.1.4/mod.ts";
 import { transformAssets } from "./transformAssets.ts";
 import { transformTS } from "./transformJS.ts";
@@ -15,7 +15,11 @@ import { acceptWebSocket, isWebSocketCloseEvent } from "https://deno.land/std@0.
 import { debounce } from "https://deno.land/std@0.224.0/async/debounce.ts";
 import { encoder } from 'https://deno.land/std@0.65.0/encoding/utf8.ts';
 import { startDinoAnimation } from "./utils/dino.ts";
+import { runBenches } from './utils/performance-test.ts';
+import { transformHTML } from "./transformHTML.ts";
+
 const { stopAnimation, updateStatus } = startDinoAnimation(false);
+let currentWatcher: Deno.FsWatcher | null = null;
 //defs
 interface Server {
   finished: Promise<void>;
@@ -29,7 +33,6 @@ const distPath = "./dist";
 
 //state
 const wss = new Set<WebSocket>();
-// let server: typeof Deno.serve | null = null;
 let server: Server | null = null;
 async function findAvailablePort(startPort: number): Promise<number> {
   let port = startPort;
@@ -67,17 +70,6 @@ async function mirrorDirectoryStructure(sourcePath: string, targetPath: string):
             `${sourcePath}/${entry.name}`,
             `${targetPath}/${newDirName}`
           );
-      // if (entry.isDirectory) {
-      //   let newDirName = entry.name;
-        
-      //   // Change directory names for dist
-      //   if (targetPath.startsWith("./dist")) {
-      //     if (newDirName === "scss") newDirName = "css";
-      //     if (newDirName === "ts") newDirName = "js";
-      //   }
-        // const newSourcePath = `${sourcePath}/${entry.name}`;
-        // const newTargetPath = `${targetPath}/${newDirName}`;
-        // await mirrorDirectoryStructure(newSourcePath, newTargetPath);
       }
     }
   } catch (error) {
@@ -91,7 +83,7 @@ async function build(changedFiles: Set<string> | null = null) {
   
   try {
     // updateStatus("🔧 building dist HTML...");
-    await transformHTML(changedFiles);
+    await transformHTML( changedFiles);
     updateStatus("HTML");
 
     // updateStatus("⚙️  transpiling dist TypeScript...");
@@ -115,9 +107,15 @@ async function build(changedFiles: Set<string> | null = null) {
 
 
 const debouncedBuild = debounce(async (changedFiles: Set<string>) => {
-  console.log("Debounced build triggered with changes:", Array.from(changedFiles));    
+  console.log("Debounced build triggered with changes:", Array.from(changedFiles));
   await build(changedFiles);
+  wss.forEach(ws => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send("reload");
+    }
+  });
 }, 300);
+
 
 async function createServer() : Promise<void> {
   if (server) {
@@ -167,94 +165,102 @@ async function createServer() : Promise<void> {
       return new Response("Not Found", { status: 404 });
     }
   });
-  console.log(`Dinos have landed.🐱‍🐉 http://localhost:${availablePort}`);
+  setTimeout(() => {
+    console.log(`Dinos have landed.🐱‍🐉 http://localhost:${availablePort}`);
+  }, 50);
 }
 
-async function transformHTML(changedFiles: Set<string> | null = null) {
-  for await (const entry of walk(srcPath, { exts: [".html"] })) {
-    const srcFile = entry.path;
-    if (changedFiles && !changedFiles.has(srcFile)) continue;
-    const relativePath = relative(srcPath, srcFile);
-    const distFile = join(distPath, relativePath);
 
-    const srcStat = await Deno.stat(srcFile);
-    const shouldCopy = await (async () => {
-      try {
-        const distStat = await Deno.stat(distFile);
-        return !distStat.mtime || (srcStat.mtime && srcStat.mtime > distStat.mtime);
-      } catch (err) {
-        return err instanceof Deno.errors.NotFound;
-      }
-    })();
+// async function startWatching() {
+//   // clean up watch. if it already exists. swapped instead of truthy/falsy, just looking for a watcher to exist. 
+//   if (currentWatcher) {
+//     try {
+//       currentWatcher.close();
+//     } catch (e) {
+//       console.error("Error closing watcher:", e);
+//     }
+//   }
 
-    if (!shouldCopy) continue;
-    await Deno.mkdir(join(distPath, relativePath, ".."), { recursive: true });
-    let content = await Deno.readTextFile(srcFile);
+//   // new watcher
+//   // added timer, clear timer, call back watching func,trying to group it into a set buff, so we can group the items. add pending changes to buff
+//   currentWatcher = Deno.watchFs(["src"], { recursive: true });
+//   console.log("Started watching for changes in src directory...");
+//   const pendingChanges = new Set<string>();
+//   let debounceTimer: number | null = null;
 
-    const result = await posthtml([
-      include({
-        root: srcPath,
-        onError: (error: Error) => console.error(`Error including partial: ${error.message}`),
-      }),
-    ]).process(content);
+//   for await (const event of currentWatcher) {
+//     event.paths.forEach(path => pendingChanges.add(resolve(path))); // changed , normalize paths
+//     if (debounceTimer !== null) {
+//       clearTimeout(debounceTimer);
+//     }
 
-    content = result.html;
+//     debounceTimer = setTimeout(async () => {
+//       if (pendingChanges.size > 0) {
+//         console.log("Change detected:" + `${event.kind}`);
+//         await debouncedBuild(pendingChanges);
+//         wss.forEach(ws => {
+//           if (ws.readyState === WebSocket.OPEN) {
+//             ws.send("reload");
+//           }
+//         });
+//         pendingChanges.clear();
+//         await startWatching();
+//         return; 
+//       }
+//     }, 100); 
+//   }
+// }
+// added timer, clear timer, call back watching func,trying to group it into a set buff, so we can group the items. add pending changes to buff
+// clean up watch. if it already exists. swapped instead of truthy/falsy, just looking for a watcher to exist. 
+// changed , got rid of one recursive call, was redundant and causing duplicates. 
+async function startWatching() {
+  if (currentWatcher) {
+    try {
+      currentWatcher.close();
+    } catch (e) {
+      console.error("Error closing watcher:", e);
+    }
+  }
 
-    const webSocketScript = `
-<script>
-  const ws = new WebSocket(\`ws://localhost:\${location.port}/ws\`);
-  
-  ws.onmessage = (event) => {
-      if (event.data === "reload") {
-          location.reload();
-      }
-  };
-  
-  ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-  };
-  
-  ws.onclose = () => {
-      console.log('WebSocket connection closed');
-  };
-  
-  ws.onopen = () => {
-      console.log('WebSocket connection established');
-  };
-</script>
-`;
-    
-    content = content.replace(/<\/body>/, `${webSocketScript}\n</body>`);
+  currentWatcher = Deno.watchFs(["src"], { recursive: true });
+  console.log("Started watching for changes in src directory...");
+  const pendingChanges = new Set<string>();
 
-    const transformedContent = content
-      .replace(/(?<=href="|src=")(.+\/)?scss\/(.+?)\.scss/g, "$1css/$2.css")
-      .replace(/(?<=href="|src=")(.+\/)?ts\/(.+?)\.ts/g, "$1js/$2.js")
-      .replace(/(?<=href="|src=")\.\.\/assets\//g, "./assets/")
-      .replace(/(?<=href="|src=")(.+\/)scss\//g, "$1css/")
-      .replace(/(?<=href="|src=")(.+\/)ts\//g, "$1js/");
+  for await (const event of currentWatcher) {
+    // console.log("Raw event paths:", event.paths);
+    event.paths.forEach(path => {
+      const resolvedPath = resolve(path);
+      console.log(`Adding path to pendingChanges: ${resolvedPath}`);
+      pendingChanges.add(resolvedPath);
+    });
 
-    await Deno.writeTextFile(distFile, transformedContent);
-    console.log(`Processed and copied ${srcFile} to ${distFile}`);
+    // console.log("Pending changes before debounce:", Array.from(pendingChanges));
+    // Pass a copy of pendingChanges to debouncedBuild
+    const changesToProcess = new Set(pendingChanges);
+    debouncedBuild(changesToProcess);
+    // Do not clear pendingChanges here; let it accumulate
   }
 }
-
 
 async function main(): Promise<void> {
   await build();
   await createServer();
-  
-  const watcher = Deno.watchFs(["src"], { recursive: true });
   console.log("Watching for changes in src directory...");
-  for await (const event of watcher) {
-    console.log(`Change detected: ${event.kind}`, event.paths);
-    const changedFiles = new Set<string>(event.paths);
-    await debouncedBuild(changedFiles);
-    wss.forEach(ws => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send("reload");
-      }
-    });
-  }
+  await startWatching();
+  // await runBenches().catch((err) => console.error("Error:", err));
+  //working watcher. old tho
+  // const watcher = Deno.watchFs(["src"], { recursive: true });
+
+  // for await (const event of watcher) {
+  //   console.log(`Change detected: ${event.kind}`, event.paths);
+  //   const changedFiles = new Set<string>(event.paths);
+  //   await debouncedBuild(changedFiles);
+  //   wss.forEach(ws => {
+  //     if (ws.readyState === WebSocket.OPEN) {
+  //       ws.send("reload");
+  //     }
+  //   });
+  // }
 }
 
 main().catch(console.error);
