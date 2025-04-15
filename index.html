@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Warren Buuffering</title>
+
+<!-- If using dist -->
+<!-- If using dist -->
+<link rel="stylesheet" href="css/style.css">
+
+
+
+
+<script type="module" src="./js/app.js"></script>
+</head>
+<body>
+    <marquee behavior="scroll" direction="left"> Welcome to WarrenBuffering com – Under Construction Since 1999 </marquee>
+<header class="test--global__headerwrapper">
+    <div class="test--global--icons--wrapper">
+        <a href="#" target="_blank"> The Greatest Show on Earth </a>
+    </div>
+</header>
+
+<section class="outer__wrapper">
+    <main>
+        <h1>Warren Buffering</h1>
+        <nav>
+            <a href="index.html">Home</a> 
+            <a href="about-me.html">About</a>
+          </nav>
+
+<img src="images/warren-buffer.png" alt="Warren Buffering character">
+
+        <h2>Welcome to the World of Warren Buffering</h2>
+        <p>Where memes meet the economy, and everything is just a little bit slow.</p>
+        <p>Join me on this journey through the digital age, where I share my thoughts, memes, and the occasional cat video.</p>
+
+<div class="container">
+ <div class="item item">“I invented the spinning wheel of death.” – Warren</div>
+      <div class="item item">“A delay a day keeps productivity away.” – Warren</div>
+      <div class="item item">“Patience isn't a virtue, it's my brand.” – Warren</div>
+    </div>
+
+    </main>
+    <aside class="test-forward-use">
+        <h2>Greatness From Small Beginnings</h2>
+        <h3>Legendary Quotes</h3>
+        HELLO WORLD<br>
+        (DINO'S VERSION)
+    </aside>
+</section>
+<section class="construction">
+    <p>🚧 Under construction since 1999 🚧</p>
+  </section>
+
+  <footer>
+    <p> 2025 Warren Buffering. Powered by dial-up internet 🐌</p>
+  </footer>
+<script>
+  const ws = new WebSocket(`ws://localhost:${location.port}/ws`);
+  
+  ws.onmessage = (event) => {
+      if (event.data === "reload") {
+          location.reload();
+      }
+  };
+  
+  ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+  };
+  
+  ws.onclose = () => {
+      console.log('WebSocket connection closed');
+  };
+  
+  ws.onopen = () => {
+      console.log('WebSocket connection established');
+  };
+</script>
+
+</body>
+</html>
