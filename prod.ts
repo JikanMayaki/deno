@@ -1,7 +1,6 @@
 //TODO
-//optimize videos
+
 //optimize images
-//pass in prod to assets
 
 // deno-lint-ignore-file no-unused-vars
 import { ensureDir, walk } from "https://deno.land/std@0.224.0/fs/mod.ts";
@@ -20,7 +19,9 @@ import { acceptWebSocket, isWebSocketCloseEvent } from "https://deno.land/std@0.
 import { debounce } from "https://deno.land/std@0.224.0/async/debounce.ts";
 import { encoder } from 'https://deno.land/std@0.65.0/encoding/utf8.ts';
 import { startDinoAnimation } from "./utils/dino.ts";
+import { runBenches } from './utils/performance-test.ts';
 const { stopAnimation, updateStatus } = startDinoAnimation(true);
+import { transformHTML } from "./transformHTML.ts";
 //globals
 const srcPath = "./src";
 const distPath = "./prod";
@@ -53,7 +54,7 @@ async function build(changedFiles: Set<string> | null = null, isProd: boolean = 
 
     try {
       // updateStatus("🔧 building prod HTML...");
-      await transformHTML(changedFiles);
+      await transformHTML(changedFiles, isProd);
       updateStatus("HTML");
       // updateStatus("⚙️  transpiling prod TypeScript...");
       await transformTS(changedFiles, isProd);
@@ -67,6 +68,7 @@ async function build(changedFiles: Set<string> | null = null, isProd: boolean = 
       await runBiome();
       updateStatus("biome");
       stopAnimation();
+      await runBenches().catch((err) => console.error("Error:", err));
     } catch (error) {
       stopAnimation();
       console.error("❌ Error during prod build process:", error);
@@ -134,49 +136,49 @@ const debouncedBuild = debounce(async (changedFiles: Set<string>) => {
 }, 300);
 
 
-async function transformHTML(changedFiles: Set<string> | null = null) {
-  console.log("Starting HTML file copying...");
-  for await (const entry of walk(srcPath, { exts: [".html"] })) {
-    const srcFile = entry.path;
-    if (changedFiles && !changedFiles.has(srcFile)) continue;
-    const relativePath = relative(srcPath, srcFile);
-    const distFile = join(distPath, relativePath);
-    const srcStat = await Deno.stat(srcFile);
-    const shouldCopy = await (async () => {
-      try {
-        const distStat = await Deno.stat(distFile);
-        return !distStat.mtime || (srcStat.mtime && srcStat.mtime > distStat.mtime);
-      } catch (err) {
-        return err instanceof Deno.errors.NotFound;
-      }
-    })();
+// async function transformHTML(changedFiles: Set<string> | null = null) {
+//   console.log("Starting HTML file copying...");
+//   for await (const entry of walk(srcPath, { exts: [".html"] })) {
+//     const srcFile = entry.path;
+//     if (changedFiles && !changedFiles.has(srcFile)) continue;
+//     const relativePath = relative(srcPath, srcFile);
+//     const distFile = join(distPath, relativePath);
+//     const srcStat = await Deno.stat(srcFile);
+//     const shouldCopy = await (async () => {
+//       try {
+//         const distStat = await Deno.stat(distFile);
+//         return !distStat.mtime || (srcStat.mtime && srcStat.mtime > distStat.mtime);
+//       } catch (err) {
+//         return err instanceof Deno.errors.NotFound;
+//       }
+//     })();
 
-    if (!shouldCopy) continue;
-    await Deno.mkdir(join(distPath, relativePath, ".."), { recursive: true });
-    let content = await Deno.readTextFile(srcFile);
+//     if (!shouldCopy) continue;
+//     await Deno.mkdir(join(distPath, relativePath, ".."), { recursive: true });
+//     let content = await Deno.readTextFile(srcFile);
     
-    const result = await posthtml([
-      include({
-        root: srcPath,
-        onError: (error: Error) => console.error(`Error including partial: ${error.message}`),
-      })
-    ]).process(content);
+//     const result = await posthtml([
+//       include({
+//         root: srcPath,
+//         onError: (error: Error) => console.error(`Error including partial: ${error.message}`),
+//       })
+//     ]).process(content);
         
-        content = result.html;
-        content = content.replace(/<!--[\s\S]*?-->/g, ""); // rm comments
-        content = content.replace(/^\s*[\r\n]/gm, ""); // rm empty lines
-        // replace paths
-        const transformedContent = content
-          .replace(/(?<=href="|src=")(.+\/)?scss\/(.+?)\.scss/g, "$1css/$2.css")
-          .replace(/(?<=href="|src=")(.+\/)?ts\/(.+?)\.ts/g, "$1js/$2.js")
-          .replace(/(?<=href="|src=")\.\.\/assets\//g, "./assets/")
-          .replace(/(?<=href="|src=")(.+\/)scss\//g, "$1css/")
-          .replace(/(?<=href="|src=")(.+\/)ts\//g, "$1js/");
-        // write the transformed content
-        await Deno.writeTextFile(distFile, transformedContent);
-        console.log(`Processed and copied ${srcFile} to ${distFile}`);
-      }
-    }
+//         content = result.html;
+//         content = content.replace(/<!--[\s\S]*?-->/g, ""); // rm comments
+//         content = content.replace(/^\s*[\r\n]/gm, ""); // rm empty lines
+//         // replace paths
+//         const transformedContent = content
+//           .replace(/(?<=href="|src=")(.+\/)?scss\/(.+?)\.scss/g, "$1css/$2.css")
+//           .replace(/(?<=href="|src=")(.+\/)?ts\/(.+?)\.ts/g, "$1js/$2.js")
+//           .replace(/(?<=href="|src=")\.\.\/assets\//g, "./assets/")
+//           .replace(/(?<=href="|src=")(.+\/)scss\//g, "$1css/")
+//           .replace(/(?<=href="|src=")(.+\/)ts\//g, "$1js/");
+//         // write the transformed content
+//         await Deno.writeTextFile(distFile, transformedContent);
+//         console.log(`Processed and copied ${srcFile} to ${distFile}`);
+//       }
+//     }
 
 async function main(): Promise<void> {
   await build();

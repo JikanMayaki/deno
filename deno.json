@@ -31,6 +31,7 @@
     "@trpc/server": "npm:@trpc/server@^11.0.0",
     "esbuild": "npm:esbuild@^0.25.1",
     "gsap": "npm:gsap@^3.12.7",
+    "lighthouse": "npm:lighthouse@^12.5.1",
     "lightningcss": "npm:lightningcss@^1.29.3",
     "postcss": "npm:postcss@^8.5.3",
     "postcss-import": "npm:postcss-import@^16.1.0",
@@ -84,7 +85,7 @@
       ]
     },
     "devDependencies": {
-      "@biomejs/biome": "1.9.2",
+      "@biomejs/biome": "npm:@biomejs/biome@^1.9.4",
       "@types/deno": "^2.2.0",
       "@types/node": "^22.10.5",
       "eslint": "^8.57.1",
